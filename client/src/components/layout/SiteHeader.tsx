@@ -1,0 +1,129 @@
+import { Menu } from "lucide-react";
+import { useEffect, useState } from "react";
+import { Link, useLocation } from "react-router-dom";
+import { Button } from "@/components/ui/button";
+import { OverlayDialog } from "@/components/ui/dialog";
+import { cn } from "@/lib/utils";
+import { MegaMenu } from "./MegaMenu";
+
+export const NAV_ITEMS = [
+  { label: "Find Distributors", to: "/distributors" },
+  { label: "Distributor Leads", to: "/leads" },
+  { label: "Products", to: "/products" },
+  { label: "Brands", to: "/brands" },
+  { label: "Categories", to: "/categories" },
+  { label: "Pricing", to: "/pricing" },
+] as const;
+
+const MOBILE_EXTRA = [
+  { label: "About", to: "/about" },
+  { label: "Contact", to: "/contact" },
+] as const;
+
+export function LogoMark({ size = 32 }: { size?: number }) {
+  // Search lens whose handle branches into three connected nodes: search, connection, distribution.
+  return (
+    <svg width={size} height={size} viewBox="0 0 64 64" aria-hidden="true" focusable="false">
+      <rect width="64" height="64" rx="16" fill="#3156D3" />
+      <circle cx="25" cy="32" r="10.5" fill="none" stroke="#fff" strokeWidth="4.5" />
+      <path d="M35.5 32h6M41.5 32l5-12M41.5 32l5 12" fill="none" stroke="#fff" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round" />
+      <circle cx="48" cy="19" r="4.2" fill="#fff" />
+      <circle cx="51" cy="32" r="4.2" fill="#C7D2FE" />
+      <circle cx="48" cy="45" r="4.2" fill="#fff" />
+    </svg>
+  );
+}
+
+export function Logo({ light }: { light?: boolean }) {
+  return (
+    <Link to="/" className="inline-flex items-center gap-2.5 rounded-lg" aria-label="Search Distributor home">
+      <LogoMark />
+      <span className={cn("font-display text-[17px] font-extrabold tracking-tight", light ? "text-white" : "text-ink")}>
+        Search <span className={light ? "text-indigo-300" : "text-primary"}>Distributor</span>
+      </span>
+    </Link>
+  );
+}
+
+export function SiteHeader() {
+  const [open, setOpen] = useState(false);
+  const [scrolled, setScrolled] = useState(false);
+  const { pathname, search } = useLocation();
+  useEffect(() => {
+    const onScroll = () => setScrolled(window.scrollY > 12);
+    onScroll();
+    window.addEventListener("scroll", onScroll, { passive: true });
+    return () => window.removeEventListener("scroll", onScroll);
+  }, []);
+  const current = pathname + search;
+  const isActive = (to: string) => (to.includes("?") ? current === to : pathname === to || (to !== "/" && pathname.startsWith(`${to}/`)));
+
+  return (
+    <header className={cn("sticky top-0 z-40 border-b transition-[background-color,border-color,box-shadow] duration-300", scrolled ? "border-line bg-white/80 backdrop-blur-md" : "border-transparent bg-background/70")}>
+      <div className={cn("container-page flex items-center justify-between gap-4 transition-[height] duration-300", scrolled ? "h-14" : "h-16")}>
+        <Logo />
+
+        <nav aria-label="Primary" className="hidden items-center gap-0.5 xl:flex">
+          {NAV_ITEMS.map((item) =>
+            item.to === "/categories" ? (
+              <MegaMenu key={item.to} active={isActive(item.to)} />
+            ) : (
+            <Link
+              key={item.to}
+              to={item.to}
+              aria-current={isActive(item.to) ? "page" : undefined}
+              className={cn(
+                "whitespace-nowrap rounded-lg px-3 py-2 text-sm font-medium text-slate-600 transition-colors hover:bg-slate-100 hover:text-ink",
+                isActive(item.to) && "bg-primary-soft text-primary-dark hover:bg-primary-soft",
+              )}
+            >
+              {item.label}
+            </Link>
+            ),
+          )}
+        </nav>
+
+        <div className="hidden items-center gap-2 xl:flex">
+          <Button asChild variant="ghost" size="sm">
+            <Link to="/login">Login</Link>
+          </Button>
+          <Button asChild size="sm">
+            <Link to="/register">Register Business</Link>
+          </Button>
+        </div>
+
+        <Button variant="secondary" size="icon" className="xl:hidden" aria-label="Open menu" onClick={() => setOpen(true)}>
+          <Menu className="h-5 w-5" aria-hidden />
+        </Button>
+      </div>
+
+      <OverlayDialog open={open} onOpenChange={setOpen} title="Menu" variant="sheet">
+        <nav aria-label="Mobile" className="flex flex-1 flex-col gap-1 overflow-y-auto p-4">
+          {[...NAV_ITEMS, ...MOBILE_EXTRA].map((item) => (
+            <Link
+              key={item.to}
+              to={item.to}
+              onClick={() => setOpen(false)}
+              aria-current={isActive(item.to) ? "page" : undefined}
+              className={cn("rounded-xl px-4 py-3 text-base font-medium text-ink hover:bg-slate-100", isActive(item.to) && "bg-primary-soft text-primary-dark")}
+            >
+              {item.label}
+            </Link>
+          ))}
+          <div className="mt-auto flex flex-col gap-2 border-t border-line pt-4">
+            <Button asChild variant="secondary" size="lg">
+              <Link to="/login" onClick={() => setOpen(false)}>
+                Login
+              </Link>
+            </Button>
+            <Button asChild size="lg">
+              <Link to="/register" onClick={() => setOpen(false)}>
+                Register Business
+              </Link>
+            </Button>
+          </div>
+        </nav>
+      </OverlayDialog>
+    </header>
+  );
+}

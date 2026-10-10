@@ -1,0 +1,23 @@
+{
+  "name": "search-distributor",
+  "private": true,
+  "version": "1.0.0",
+  "workspaces": [
+    "shared",
+    "server",
+    "client"
+  ],
+  "scripts": {
+    "dev": "npm run dev -w server",
+    "build": "npm run build -w client && npm run build -w server",
+    "start": "npm run start -w server",
+    "typecheck": "npm run typecheck -w shared && npm run typecheck -w server && npm run typecheck -w client",
+    "db:up": "docker compose up -d postgres",
+    "db:migrate": "npm run db:migrate -w server",
+    "db:seed": "npm run db:seed -w server",
+    "db:fixtures": "npm run db:fixtures -w server"
+  },
+  "devDependencies": {
+    "sharp": "^0.35.5"
+  }
+}

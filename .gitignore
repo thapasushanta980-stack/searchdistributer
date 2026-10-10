@@ -1,0 +1,8 @@
+node_modules
+dist
+.env
+*.log
+.vite
+.pgdata
+.dev.log
+.prod.log

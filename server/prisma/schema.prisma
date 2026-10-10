@@ -1,0 +1,396 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+/// ---------------------------------------------------------------
+/// Tenancy: an Organisation owns its listings, products and enquiries.
+/// Organisation ids are always derived server-side, never from the client.
+/// ---------------------------------------------------------------
+
+enum OrganisationStatus {
+  ACTIVE
+  SUSPENDED
+}
+
+enum ReviewStatus {
+  DRAFT
+  SUBMITTED
+  APPROVED
+  REJECTED
+}
+
+enum ListingStatus {
+  DRAFT
+  SUBMITTED
+  APPROVED
+  REJECTED
+  PAUSED
+  ARCHIVED
+}
+
+enum BusinessType {
+  DISTRIBUTOR
+  WHOLESALER
+  IMPORTER
+  SUPPLIER
+  MANUFACTURER
+}
+
+enum CoverageScope {
+  LOCAL
+  NATIONAL
+  INTERNATIONAL
+}
+
+enum VerificationStatus {
+  NONE
+  PROFILE_REVIEWED
+  VERIFIED
+}
+
+enum EnquiryStatus {
+  PENDING_VERIFICATION
+  NEW
+  CONTACTED
+  CLOSED
+}
+
+enum LeadType {
+  BUSINESS_REGISTRATION
+  REQUIREMENT
+  CONTACT
+}
+
+enum RequirementKind {
+  DISTRIBUTOR
+  PRODUCT
+  SUPPLIER
+  BRAND
+}
+
+enum RequirementStatus {
+  PENDING_REVIEW
+  APPROVED
+  REJECTED
+  CLOSED
+}
+
+enum AdPlacementCode {
+  HOME_HERO_BANNER
+  HOME_SPOTLIGHT
+  HOME_FOOTER_BANNER
+  SEARCH_TOP_BANNER
+}
+
+enum AdStatus {
+  DRAFT
+  PENDING_REVIEW
+  APPROVED
+  PAUSED
+  REJECTED
+  COMPLETED
+}
+
+enum OutboxStatus {
+  PENDING
+  SENT
+  FAILED
+}
+
+model Organisation {
+  id                  String             @id @default(uuid())
+  name                String
+  status              OrganisationStatus @default(ACTIVE)
+  profileReviewStatus ReviewStatus       @default(DRAFT)
+  /// Where new-enquiry notifications are delivered. Contact details are only shared with this business.
+  notificationEmail   String?
+  createdAt           DateTime           @default(now())
+  updatedAt           DateTime           @updatedAt
+
+  distributors        Distributor[]
+  products            Product[]
+  enquiries           Enquiry[]
+  subscriptionPeriods SubscriptionPeriod[]
+  adCampaigns         AdCampaign[]
+
+  @@map("organisations")
+}
+
+/// Entitlement window. Timestamps are UTC and end-exclusive: [startsAt, endsAt).
+model SubscriptionPeriod {
+  id             String       @id @default(uuid())
+  organisationId String
+  organisation   Organisation @relation(fields: [organisationId], references: [id], onDelete: Cascade)
+  startsAt       DateTime
+  endsAt         DateTime
+  createdAt      DateTime     @default(now())
+
+  @@index([organisationId, startsAt, endsAt])
+  @@map("subscription_periods")
+}
+
+model Category {
+  id          String     @id @default(uuid())
+  slug        String     @unique
+  name        String
+  description String?
+  parentId    String?
+  parent      Category?  @relation("CategoryTree", fields: [parentId], references: [id], onDelete: Restrict)
+  children    Category[] @relation("CategoryTree")
+  sortOrder   Int        @default(0)
+  isHidden    Boolean    @default(false)
+  createdAt   DateTime   @default(now())
+  updatedAt   DateTime   @updatedAt
+
+  distributors Distributor[]
+  products     Product[]
+  requirements Requirement[]
+
+  @@index([parentId])
+  @@map("categories")
+}
+
+model Distributor {
+  id                 String             @id @default(uuid())
+  organisationId     String
+  organisation       Organisation       @relation(fields: [organisationId], references: [id], onDelete: Cascade)
+  name               String
+  slug               String             @unique
+  logoUrl            String?
+  summary            String
+  description        String
+  categoryId         String?
+  category           Category?          @relation(fields: [categoryId], references: [id], onDelete: Restrict)
+  /// Human-readable location, e.g. "Kathmandu, Nepal".
+  location           String
+  city               String?
+  country            String?
+  coverage           CoverageScope      @default(NATIONAL)
+  /// Regions / countries where the business distributes.
+  territories        String[]           @default([])
+  businessType       BusinessType       @default(DISTRIBUTOR)
+  website            String?
+  contactPerson      String?
+  foundedYear        Int?
+  specialties        String[]           @default([])
+  distributorshipInfo String?
+  minimumOrder       String?
+  supportOffered     String?
+  verificationStatus VerificationStatus @default(NONE)
+  investmentMin      Int?
+  investmentMax      Int?
+  investmentCurrency String?            @db.VarChar(3)
+
+  /// Content lifecycle (moderation).
+  status             ListingStatus      @default(DRAFT)
+  publicationEnabled Boolean            @default(false)
+  /// Admin-managed placement. Always rendered with a "Featured" label.
+  isFeatured         Boolean            @default(false)
+  featuredUntil      DateTime?
+  /// Local-development fixture. Never publicly visible unless SHOW_DEMO_DATA=true.
+  isDemo             Boolean            @default(false)
+
+  createdAt          DateTime           @default(now())
+  updatedAt          DateTime           @updatedAt
+
+  products           Product[]
+  enquiries          Enquiry[]
+
+  @@index([organisationId])
+  @@index([categoryId])
+  @@index([status, publicationEnabled])
+  @@index([createdAt])
+  @@index([name(ops: raw("gin_trgm_ops"))], type: Gin, map: "distributors_name_trgm_idx")
+  @@index([summary(ops: raw("gin_trgm_ops"))], type: Gin, map: "distributors_summary_trgm_idx")
+  @@index([location(ops: raw("gin_trgm_ops"))], type: Gin, map: "distributors_location_trgm_idx")
+  @@map("distributors")
+}
+
+model Product {
+  id                 String       @id @default(uuid())
+  organisationId     String
+  organisation       Organisation @relation(fields: [organisationId], references: [id], onDelete: Cascade)
+  distributorId      String
+  distributor        Distributor  @relation(fields: [distributorId], references: [id], onDelete: Cascade)
+  name               String
+  slug               String
+  /// Globally unique public path segment: /products/:publicSlug
+  publicSlug         String       @unique
+  description        String?
+  categoryId         String?
+  category           Category?    @relation(fields: [categoryId], references: [id], onDelete: Restrict)
+  packaging          String?
+  /// Optional price / range, or null for "Contact for details".
+  priceLabel         String?
+  status             ListingStatus @default(DRAFT)
+  publicationEnabled Boolean      @default(false)
+  createdAt          DateTime     @default(now())
+  updatedAt          DateTime     @updatedAt
+
+  @@unique([distributorId, slug])
+  @@index([categoryId])
+  @@index([status, publicationEnabled])
+  @@index([name(ops: raw("gin_trgm_ops"))], type: Gin, map: "products_name_trgm_idx")
+  @@map("products")
+}
+
+model Enquiry {
+  id                     String        @id @default(uuid())
+  reference              String        @unique
+  /// Recipient is resolved server-side from the published listing.
+  organisationId         String
+  organisation           Organisation  @relation(fields: [organisationId], references: [id])
+  distributorId          String
+  distributor            Distributor   @relation(fields: [distributorId], references: [id])
+  idempotencyKey         String        @unique
+  senderName             String
+  senderEmail            String
+  senderPhone            String?
+  senderLocation         String
+  message                String
+  consentAt              DateTime
+  status                 EnquiryStatus @default(PENDING_VERIFICATION)
+  spamFlag               Boolean       @default(false)
+  verificationTokenHash  String?       @unique
+  verificationExpiresAt  DateTime?
+  verifiedAt             DateTime?
+  verificationSends      Int           @default(0)
+  createdAt              DateTime      @default(now())
+  updatedAt              DateTime      @updatedAt
+
+  @@index([organisationId, status])
+  @@index([distributorId])
+  @@map("enquiries")
+}
+
+/// Buyer-requirement, business-registration and contact submissions.
+model Lead {
+  id             String   @id @default(uuid())
+  reference      String   @unique
+  type           LeadType
+  idempotencyKey String   @unique
+  name           String
+  companyName    String?
+  email          String
+  phone          String?
+  categorySlug   String?
+  location       String?
+  message        String
+  consentAt      DateTime
+  createdAt      DateTime @default(now())
+
+  @@index([type, createdAt])
+  @@map("leads")
+}
+
+/// Retryable notification intent. A failed email never loses or duplicates the saved record.
+model NotificationOutbox {
+  id          String       @id @default(uuid())
+  /// Deduplication key, e.g. "enquiry-verify:<enquiryId>".
+  dedupeKey   String       @unique
+  template    String
+  toEmail     String
+  payload     Json
+  status      OutboxStatus @default(PENDING)
+  attempts    Int          @default(0)
+  lastError   String?
+  nextAttemptAt DateTime   @default(now())
+  sentAt      DateTime?
+  createdAt   DateTime     @default(now())
+
+  @@index([status, nextAttemptAt])
+  @@map("notification_outbox")
+}
+
+/// A buyer / would-be distributor requirement ("lead"). Public only after moderation; contact details never leave the server.
+model Requirement {
+  id               String            @id @default(uuid())
+  reference        String            @unique
+  slug             String            @unique
+  idempotencyKey   String            @unique
+  kind             RequirementKind
+  categoryId       String?
+  category         Category?         @relation(fields: [categoryId], references: [id], onDelete: SetNull)
+  title            String
+  description      String
+  budgetMin        Int?
+  budgetMax        Int?
+  budgetCurrency   String?           @db.VarChar(3)
+  preferredLocation String
+  experience       String?
+  warehouse        String?
+  distributionArea String?
+  additional       String?
+  /// Private contact snapshot (only shared with a responding business through the platform).
+  contactName      String
+  contactEmail     String
+  contactPhone     String
+  companyName      String?
+  contactLocation  String
+  consentAt        DateTime
+  status           RequirementStatus @default(PENDING_REVIEW)
+  isDemo           Boolean           @default(false)
+  createdAt        DateTime          @default(now())
+  updatedAt        DateTime          @updatedAt
+
+  responses        RequirementResponse[]
+
+  @@index([status, createdAt])
+  @@index([categoryId])
+  @@map("requirements")
+}
+
+model RequirementResponse {
+  id             String      @id @default(uuid())
+  reference      String      @unique
+  idempotencyKey String      @unique
+  requirementId  String
+  requirement    Requirement @relation(fields: [requirementId], references: [id], onDelete: Cascade)
+  senderName     String
+  senderEmail    String
+  senderPhone    String?
+  senderLocation String
+  message        String
+  consentAt      DateTime
+  createdAt      DateTime    @default(now())
+
+  @@index([requirementId])
+  @@map("requirement_responses")
+}
+
+/// Admin-managed advertising. Served only when: status APPROVED, payment verified, inside [startsAt, endsAt),
+/// and (if tied to an organisation) that organisation is active with a current subscription.
+model AdCampaign {
+  id              String            @id @default(uuid())
+  placement       AdPlacementCode
+  organisationId  String?
+  organisation    Organisation?     @relation(fields: [organisationId], references: [id], onDelete: SetNull)
+  advertiserName  String
+  headline        String
+  description     String?
+  ctaLabel        String            @default("Learn more")
+  /// https:// URL or a site-relative path. Validated again at serve time.
+  destinationUrl  String
+  imageUrl        String?
+  imageAlt        String?
+  status          AdStatus          @default(DRAFT)
+  paymentVerified Boolean           @default(false)
+  startsAt        DateTime
+  endsAt          DateTime
+  /// Relative share when several campaigns compete for one slot.
+  weight          Int               @default(1)
+  impressions     Int               @default(0)
+  clicks          Int               @default(0)
+  isDemo          Boolean           @default(false)
+  internalNotes   String?
+  createdAt       DateTime          @default(now())
+  updatedAt       DateTime          @updatedAt
+
+  @@index([placement, status, startsAt, endsAt])
+  @@map("ad_campaigns")
+}

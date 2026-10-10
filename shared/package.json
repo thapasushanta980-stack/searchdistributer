@@ -1,0 +1,11 @@
+{
+  "name": "@sd/shared",
+  "private": true,
+  "version": "1.0.0",
+  "type": "module",
+  "main": "src/index.ts",
+  "types": "src/index.ts",
+  "scripts": { "typecheck": "tsc --noEmit" },
+  "dependencies": { "zod": "^3.25.0" },
+  "devDependencies": { "typescript": "^5.9.0" }
+}
