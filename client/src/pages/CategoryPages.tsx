@@ -46,15 +46,20 @@ export function CategoriesPage() {
         {tree.length === 0 ? (
           <p className="mt-10 rounded-card border border-dashed border-line-strong bg-surface p-10 text-center text-muted">No categories are available yet.</p>
         ) : (
-          <ul className="mt-6 grid gap-3 sm:mt-10 sm:grid-cols-2 sm:gap-5 lg:grid-cols-3">
+          <ul className="mt-6 grid grid-cols-[minmax(0,1fr)] gap-3 sm:mt-10 sm:grid-cols-2 sm:gap-5 lg:grid-cols-3">
             {tree.map((c) => (
               <li key={c.slug} className="rounded-card border border-line bg-surface p-4 shadow-card transition-[box-shadow,transform] sm:p-6 duration-200 hover:-translate-y-1 hover:shadow-card-hover">
-                <h2 className="text-lg sm:text-xl">
-                  <Link to={`/categories/${c.slug}`} className="inline-flex min-h-11 items-center gap-2 hover:text-primary sm:min-h-0">
-                    {c.name}
-                    <span className="rounded-full bg-primary-soft px-2 py-0.5 text-xs font-semibold text-primary-dark tabular-nums">{c.distributorCount}</span>
+                <div className="flex items-center justify-between gap-3">
+                  <h2 className="min-w-0 text-lg sm:text-xl">
+                    <Link to={`/categories/${c.slug}`} className="inline-flex min-h-11 items-center gap-2 hover:text-primary sm:min-h-0">
+                      <span className="truncate">{c.name}</span>
+                      <span className="rounded-full bg-primary-soft px-2 py-0.5 text-xs font-semibold text-primary-dark tabular-nums">{c.distributorCount}</span>
+                    </Link>
+                  </h2>
+                  <Link to={`/categories/${c.slug}`} aria-label={`Browse all ${c.name}`} className="inline-flex min-h-9 shrink-0 items-center gap-1 rounded-full border border-line-strong px-3 text-xs font-semibold text-slate-700 hover:border-primary/50 hover:text-primary sm:hidden">
+                    Browse All <ArrowRight className="h-3.5 w-3.5" aria-hidden />
                   </Link>
-                </h2>
+                </div>
                 {c.description && <p className="mt-2 text-sm text-muted">{c.description}</p>}
                 {c.children.length > 0 && (
                   <ul className="mt-2 border-t border-line pt-2 sm:mt-4 sm:space-y-1.5 sm:pt-4">

@@ -19,20 +19,20 @@ import { NotFoundPage } from "./NotFoundPage";
 
 export function ProductTile({ p }: { p: ProductListItemDTO }) {
   return (
-    <li className="group/p flex w-[76%] shrink-0 snap-start flex-col sm:w-auto overflow-hidden rounded-card border border-line bg-surface shadow-card transition-[box-shadow,transform,border-color] duration-200 hover:-translate-y-1 hover:border-line-strong hover:shadow-card-hover">
-      <div className="flex h-36 items-center justify-center bg-gradient-to-br from-slate-50 to-primary-soft/60 text-slate-300" aria-hidden>
+    <li className="group/p flex min-w-0 flex-col overflow-hidden rounded-card border border-line bg-surface shadow-card transition-[box-shadow,transform,border-color] duration-200 hover:-translate-y-1 hover:border-line-strong hover:shadow-card-hover">
+      <div className="flex h-24 items-center justify-center bg-gradient-to-br from-slate-50 to-primary-soft/60 text-slate-300" aria-hidden>
         <Package className="h-10 w-10" />
       </div>
-      <div className="flex flex-1 flex-col p-4">
+      <div className="flex flex-1 flex-col p-3 sm:p-4">
         {p.category && <p className="text-xs font-semibold uppercase tracking-wide text-primary">{p.category.name}</p>}
-        <h3 className="mt-1 text-base">
+        <h3 className="mt-1 line-clamp-2 text-sm sm:text-base">
           <Link to={`/products/${p.publicSlug}`} className="hover:text-primary">
             {p.name}
           </Link>
         </h3>
-        <p className="mt-1 text-sm text-ink">{p.distributor.name}</p>
+        <p className="mt-1 truncate text-[13px] text-ink sm:text-sm">{p.distributor.name}</p>
         <p className="mt-0.5 flex items-center gap-1 text-xs text-muted">
-          <MapPin className="h-3.5 w-3.5" aria-hidden /> {p.distributor.location}
+          <MapPin className="h-3.5 w-3.5 shrink-0" aria-hidden /> <span className="truncate">{p.distributor.location}</span>
         </p>
         <Link to={`/products/${p.publicSlug}`} className="mt-auto inline-flex min-h-11 items-center pt-2 text-sm font-semibold text-primary hover:underline">
           View Product <span className="sr-only">{p.name}</span>
@@ -113,7 +113,7 @@ export function ProductsPage() {
         </form>
 
         {isPending ? (
-          <ul aria-busy="true" className="mt-8 grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+          <ul aria-busy="true" className="mt-6 grid grid-cols-2 gap-3 sm:mt-8 sm:gap-4 lg:grid-cols-4">
             {Array.from({ length: 8 }, (_, i) => (
               <li key={i}>
                 <Skeleton className="h-64 w-full rounded-card" />
@@ -142,7 +142,7 @@ export function ProductsPage() {
             <p aria-live="polite" className="mt-8 text-sm text-slate-600">
               Showing <strong className="tabular-nums text-ink">{data.pagination.total}</strong> {data.pagination.total === 1 ? "product" : "products"}
             </p>
-            <ul className="mt-4 grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+            <ul className="mt-4 grid grid-cols-2 gap-3 sm:gap-4 lg:grid-cols-4">
               {data.data.map((p) => (
                 <ProductTile key={p.id} p={p} />
               ))}
@@ -265,7 +265,7 @@ export function ProductDetailPage() {
             <h2 id="rel-h" className="text-2xl">
               Related products
             </h2>
-            <ul className="mt-5 grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+            <ul className="mt-5 grid grid-cols-2 gap-3 sm:gap-4 lg:grid-cols-4">
               {p.related.map((r) => (
                 <ProductTile key={r.id} p={r} />
               ))}

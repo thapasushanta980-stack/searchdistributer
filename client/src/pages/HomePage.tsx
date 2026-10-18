@@ -8,6 +8,7 @@ import { CtaBand } from "@/components/home/blocks";
 import { AdBanner, AdSpotlight } from "@/components/ads/AdSlot";
 import { Showcase } from "@/components/home/Showcase";
 import { HeroNetwork } from "@/components/home/visuals";
+import { TrendingCategories } from "@/components/layout/TrendingCategories";
 import { RequirementCard } from "@/components/leads/RequirementCard";
 import { Button } from "@/components/ui/button";
 import { Reveal } from "@/components/ui/reveal";
@@ -21,10 +22,10 @@ import { abs, organizationLd, websiteLd } from "@/seo/builders";
 export const HOME_LEADS: RequirementSearchParams = { ...parseRequirementSearch(new URLSearchParams()), page: 1 };
 
 const TABS = [
-  { id: "distributors", label: "Find Distributors", path: "/distributors", placeholder: "Product, brand or keyword", location: true },
-  { id: "products", label: "Find Products", path: "/products", placeholder: "Product or brand name", location: false },
-  { id: "brands", label: "Find Brands", path: "/brands", placeholder: "Brand or manufacturer", location: true },
-  { id: "leads", label: "Distributor Leads", path: "/leads", placeholder: "Requirement or product", location: true },
+  { id: "distributors", label: "Find Distributors", short: "Distributors", path: "/distributors", placeholder: "Product, brand or keyword", location: true },
+  { id: "products", label: "Find Products", short: "Products", path: "/products", placeholder: "Product or brand name", location: false },
+  { id: "brands", label: "Find Brands", short: "Brands", path: "/brands", placeholder: "Brand or manufacturer", location: true },
+  { id: "leads", label: "Distributor Leads", short: "Leads", path: "/leads", placeholder: "Requirement or product", location: true },
 ] as const;
 
 const WHY = [
@@ -77,7 +78,6 @@ export function HomePage() {
     [kw, loc, cat, active, navigate],
   );
 
-  const popular = [...categories].filter((c) => c.distributorCount > 0).sort((a, b) => b.distributorCount - a.distributorCount).slice(0, 4);
   const leadItems = (leads?.data ?? []).slice(0, 3);
 
   const spec: HeadSpec = {
@@ -91,7 +91,10 @@ export function HomePage() {
   return (
     <>
       <PageHead spec={spec} site={site} />
+      <TrendingCategories />
 
+      {/* Phones show the ads first; from sm up the hero comes first. */}
+      <div className="flex flex-col">
       {/* ---------------- Hero ---------------- */}
       <section className="relative isolate overflow-hidden">
         <div className="hero-bg" aria-hidden>
@@ -99,18 +102,18 @@ export function HomePage() {
         </div>
         <div className="mx-auto grid max-w-[1320px] grid-cols-[minmax(0,1fr)] items-center gap-10 px-4 pb-12 pt-8 sm:px-6 lg:grid-cols-[1.4fr_0.6fr] lg:gap-4 lg:pb-16 lg:pt-12">
           <div className="min-w-0">
-            <p className="anim-rise inline-flex items-center gap-2 rounded-full bg-primary-soft px-3 py-1 text-xs font-bold uppercase tracking-[0.16em] text-primary-dark"><span className="h-1.5 w-1.5 rounded-full bg-primary" aria-hidden />The B2B Distribution Network</p>
-            <h1 className="anim-rise mt-4 text-[2rem] leading-[1.1] tracking-tight sm:text-4xl lg:text-[2.6rem]" style={{ animationDelay: "60ms" }}>
+            <p className="anim-rise hidden items-center gap-2 rounded-full bg-primary-soft px-3 py-1 text-xs font-bold uppercase tracking-[0.16em] text-primary-dark sm:inline-flex"><span className="h-1.5 w-1.5 rounded-full bg-primary" aria-hidden />The B2B Distribution Network</p>
+            <h1 className="anim-rise mt-4 hidden sm:block text-[2rem] leading-[1.1] tracking-tight sm:text-4xl lg:text-[2.6rem]" style={{ animationDelay: "60ms" }}>
               Find the right distributor.
               <br />
               <span className="text-primary">Grow into new markets.</span>
             </h1>
-            <p className="anim-rise mt-3 max-w-lg text-sm leading-relaxed text-body sm:text-base" style={{ animationDelay: "120ms" }}>
+            <p className="anim-rise mt-3 hidden max-w-lg text-sm leading-relaxed text-body sm:block sm:text-base" style={{ animationDelay: "120ms" }}>
               Search distributors, discover products, explore brands and connect with businesses looking for new distribution opportunities.
             </p>
 
-            <div className="anim-pop relative z-20 mt-6 max-w-[680px]">
-              <div role="tablist" aria-label="What are you looking for?" className="scrollbar-none relative mb-3 flex max-w-full gap-1 overflow-x-auto rounded-full sm:inline-flex sm:flex-wrap sm:overflow-visible bg-white/80 p-1 shadow-sm ring-1 ring-line backdrop-blur">
+            <div className="anim-pop relative z-20 mt-0 max-w-[680px] sm:mt-6">
+              <div role="tablist" aria-label="What are you looking for?" className="relative mb-3 grid max-w-full grid-cols-4 gap-1 rounded-full sm:inline-flex sm:flex-wrap bg-white/80 p-1 shadow-sm ring-1 ring-line backdrop-blur">
                 {TABS.map((t) => (
                   <button
                     key={t.id}
@@ -119,9 +122,10 @@ export function HomePage() {
                     id={`tab-${t.id}`}
                     aria-selected={tab === t.id}
                     onClick={() => setTab(t.id)}
-                    className={cn("min-h-11 shrink-0 whitespace-nowrap rounded-full px-4 text-sm font-semibold transition-colors sm:min-h-0 sm:px-3.5 sm:py-1.5 sm:text-[13px]", tab === t.id ? "bg-ink text-white shadow-sm" : "text-slate-600 hover:bg-slate-100 hover:text-ink")}
+                    className={cn("min-h-11 min-w-0 whitespace-nowrap rounded-full px-1 text-xs font-semibold transition-colors sm:min-h-0 sm:px-3.5 sm:py-1.5 sm:text-[13px]", tab === t.id ? "bg-ink text-white shadow-sm" : "text-slate-600 hover:bg-slate-100 hover:text-ink")}
                   >
-                    {t.label}
+                    <span className="sm:hidden">{t.short}</span>
+                    <span className="hidden sm:inline">{t.label}</span>
                   </button>
                 ))}
               </div>
@@ -140,27 +144,18 @@ export function HomePage() {
                 />
               </div>
             </div>
-            {popular.length > 0 && (
-              <div className="scrollbar-none relative -mx-4 mt-4 flex items-center gap-2 overflow-x-auto px-4 pb-1 sm:mx-0 sm:flex-wrap sm:overflow-visible sm:px-0 sm:pb-0">
-                <span className="shrink-0 text-[13px] font-medium text-muted">Popular:</span>
-                {popular.map((c, i) => (
-                  <Link key={c.slug} to={`/distributors?category=${c.slug}`} style={{ ["--i" as string]: i }} className="anim-chip shrink-0 whitespace-nowrap rounded-full border border-line bg-white/70 px-3.5 py-2 text-[13px] font-medium text-slate-700 sm:px-3 sm:py-1 transition-[border-color,color,background-color,transform] duration-200 hover:-translate-y-0.5 hover:border-primary/50 hover:bg-primary-soft hover:text-primary-dark">
-                    {c.name}
-                  </Link>
-                ))}
-              </div>
-            )}
           </div>
-          <div className="mt-2 lg:mt-0">
+          <div className="hidden lg:block">
             <HeroNetwork />
           </div>
         </div>
       </section>
 
       {/* ---------------- Advertising: hero promotional banner ---------------- */}
-      <div className="container-page space-y-4 pb-8 sm:space-y-5 sm:pb-12">
+      <div className="container-page order-first space-y-4 pb-4 pt-3 sm:order-none sm:space-y-5 sm:pb-12 sm:pt-0">
         <AdBanner placement="HOME_HERO_BANNER" fallback big />
         <AdSpotlight />
+      </div>
       </div>
 
       {/* ---------------- Business & product showcase ---------------- */}

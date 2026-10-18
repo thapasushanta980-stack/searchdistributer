@@ -1,4 +1,4 @@
-import { Menu, Search } from "lucide-react";
+import { Menu } from "lucide-react";
 import { useEffect, useState } from "react";
 import { Link, useLocation } from "react-router-dom";
 import { Button } from "@/components/ui/button";
@@ -37,9 +37,9 @@ export function LogoMark({ size = 32 }: { size?: number }) {
 
 export function Logo({ light }: { light?: boolean }) {
   return (
-    <Link to="/" className="inline-flex min-h-11 items-center gap-2.5 rounded-lg" aria-label="Search Distributor home">
+    <Link to="/" className="inline-flex min-h-11 shrink-0 items-center gap-2 rounded-lg sm:gap-2.5" aria-label="Search Distributor home">
       <LogoMark />
-      <span className={cn("font-display text-[17px] font-extrabold tracking-tight", light ? "text-white" : "text-ink")}>
+      <span className={cn("whitespace-nowrap font-display text-base font-extrabold tracking-tight sm:text-[17px]", light ? "text-white" : "text-ink")}>
         Search <span className={light ? "text-indigo-300" : "text-primary"}>Distributor</span>
       </span>
     </Link>
@@ -61,7 +61,7 @@ export function SiteHeader() {
 
   return (
     <header className={cn("sticky top-0 z-40 border-b transition-[background-color,border-color,box-shadow] duration-300", scrolled ? "border-line bg-white/95 backdrop-blur-md sm:bg-white/80" : "border-transparent bg-background/95 sm:bg-background/70")}>
-      <div className={cn("container-page flex items-center justify-between gap-4 transition-[height] duration-300", "h-14", !scrolled && "sm:h-16")}>
+      <div className={cn("container-page flex items-center justify-between gap-2 sm:gap-4 transition-[height] duration-300", "h-14", !scrolled && "sm:h-16")}>
         <Logo />
 
         <nav aria-label="Primary" className="hidden items-center gap-0.5 xl:flex">
@@ -94,10 +94,8 @@ export function SiteHeader() {
         </div>
 
         <div className="flex items-center gap-2 xl:hidden">
-          <Button asChild variant="ghost" size="icon" className="sm:hidden" aria-label="Search distributors">
-            <Link to="/distributors">
-              <Search className="h-5 w-5" aria-hidden />
-            </Link>
+          <Button asChild size="sm" className="px-3.5 sm:hidden">
+            <Link to="/register">Join Free</Link>
           </Button>
           <Button variant="secondary" size="icon" aria-label="Open menu" onClick={() => setOpen(true)}>
             <Menu className="h-5 w-5" aria-hidden />

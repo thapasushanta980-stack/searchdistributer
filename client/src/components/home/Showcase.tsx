@@ -1,6 +1,6 @@
 import { useQuery } from "@tanstack/react-query";
 import { m } from "framer-motion";
-import { ArrowRight, BadgeCheck, MapPin } from "lucide-react";
+import { ArrowRight, BadgeCheck, Eye, MapPin } from "lucide-react";
 import { useState } from "react";
 import { Link } from "react-router-dom";
 import { BUSINESS_TYPE_LABELS, parseSearch, type DistributorCardDTO, type DistributorSearchParams, type ProductSearchParams } from "@sd/shared";
@@ -16,20 +16,20 @@ import { ProductTile } from "@/pages/ProductPages";
 const MAX_TABS = 6;
 
 /** Default (all industries) queries, shared with the server-side prefetcher. */
-export const SHOWCASE_COMPANIES: DistributorSearchParams = parseSearch(new URLSearchParams("limit=8"));
+export const SHOWCASE_COMPANIES: DistributorSearchParams = parseSearch(new URLSearchParams("limit=12"));
 export const SHOWCASE_PRODUCTS: ProductSearchParams = { page: 1 };
 
 /** Compact, logo-led company tile: logo panel with category chip, name, location, two actions. */
 function ShowcaseCard({ d, onEnquire }: { d: DistributorCardDTO; onEnquire: (d: DistributorCardDTO) => void }) {
   return (
-    <li className="w-[76%] min-w-0 shrink-0 snap-start list-none sm:w-auto">
+    <li className="min-w-0 list-none">
       <m.article
         whileHover={{ y: -3 }}
         transition={{ type: "spring", stiffness: 420, damping: 30 }}
         aria-labelledby={`sc-${d.id}`}
-        className="flex h-full flex-col rounded-card border border-line bg-surface p-3.5 shadow-card transition-[box-shadow,border-color] duration-200 hover:border-line-strong hover:shadow-card-hover"
+        className="flex h-full flex-col rounded-card border border-line bg-surface p-2.5 shadow-card sm:p-3.5 transition-[box-shadow,border-color] duration-200 hover:border-line-strong hover:shadow-card-hover"
       >
-        <div className="relative flex h-28 items-center justify-center overflow-hidden rounded-xl border border-line bg-white">
+        <div className="relative flex h-20 items-center justify-center overflow-hidden rounded-xl sm:h-28 border border-line bg-white">
           {d.logoUrl ? (
             <img src={d.logoUrl} alt={`${d.name} logo`} width={160} height={80} loading="lazy" decoding="async" className="h-full w-full object-contain p-3" />
           ) : (
@@ -37,7 +37,7 @@ function ShowcaseCard({ d, onEnquire }: { d: DistributorCardDTO; onEnquire: (d: 
               {initials(d.name)}
             </span>
           )}
-          <span className="absolute left-2 top-2 max-w-[70%] truncate rounded bg-night px-2 py-0.5 text-xs font-semibold text-white">{d.category?.name ?? BUSINESS_TYPE_LABELS[d.businessType]}</span>
+          <span className="absolute left-2 top-2 hidden max-w-[70%] truncate rounded bg-night sm:block px-2 py-0.5 text-xs font-semibold text-white">{d.category?.name ?? BUSINESS_TYPE_LABELS[d.businessType]}</span>
           {d.verificationStatus === "VERIFIED" && (
             <span className="absolute right-2 top-2 flex h-6 w-6 items-center justify-center rounded-full bg-green-50 text-success" title="Verified business">
               <BadgeCheck className="h-4 w-4" aria-hidden />
@@ -46,7 +46,7 @@ function ShowcaseCard({ d, onEnquire }: { d: DistributorCardDTO; onEnquire: (d: 
           )}
         </div>
 
-        <h3 id={`sc-${d.id}`} className="mt-3 truncate font-sans text-[15px] font-bold tracking-tight">
+        <h3 id={`sc-${d.id}`} className="mt-2 truncate font-sans text-sm font-bold tracking-tight sm:mt-3 sm:text-[15px]">
           <Link to={`/distributors/${d.slug}`} className="rounded hover:text-primary" title={d.name}>
             {d.name}
           </Link>
@@ -56,14 +56,21 @@ function ShowcaseCard({ d, onEnquire }: { d: DistributorCardDTO; onEnquire: (d: 
           <span className="truncate">{d.location}</span>
         </p>
 
-        <div className="mt-auto grid grid-cols-2 gap-2 pt-4">
-          <Button asChild variant="secondary" size="sm" className="px-2">
+        <div className="mt-auto flex gap-2 pt-3 sm:grid sm:grid-cols-2 sm:pt-4">
+          {/* Phones: eye button opens the profile; the name link and desktop button do the same */}
+          <Button asChild variant="secondary" size="icon" className="shrink-0 sm:hidden">
+            <Link to={`/distributors/${d.slug}`} aria-label={`View profile of ${d.name}`}>
+              <Eye className="h-5 w-5" aria-hidden />
+            </Link>
+          </Button>
+          <Button asChild variant="secondary" size="sm" className="hidden px-2 sm:inline-flex">
             <Link to={`/distributors/${d.slug}`}>
               View Profile<span className="sr-only"> of {d.name}</span>
             </Link>
           </Button>
-          <Button size="sm" className="px-2" onClick={() => onEnquire(d)} aria-label={`Send enquiry to ${d.name}`}>
-            Send Enquiry
+          <Button size="sm" className="min-w-0 flex-1 px-2 sm:flex-none" onClick={() => onEnquire(d)} aria-label={`Send enquiry to ${d.name}`}>
+            <span className="sm:hidden">Enquire</span>
+            <span className="hidden sm:inline">Send Enquiry</span>
           </Button>
         </div>
       </m.article>
@@ -113,15 +120,15 @@ export function Showcase() {
 
       <div role="tabpanel" aria-live="polite" className="mt-6">
         {companies.isPending ? (
-          <ul aria-busy="true" className="scrollbar-none relative -mx-4 flex snap-x snap-mandatory gap-3 overflow-x-auto scroll-px-4 px-4 pb-3 sm:mx-0 sm:grid sm:snap-none sm:grid-cols-2 sm:gap-4 sm:overflow-visible sm:px-0 sm:pb-0 lg:grid-cols-4">
+          <ul aria-busy="true" className="grid grid-cols-2 gap-3 sm:grid-cols-2 sm:gap-4 lg:grid-cols-4">
             {Array.from({ length: 4 }, (_, i) => (
-              <li key={i} className="w-[76%] shrink-0 sm:w-auto">
+              <li key={i}>
                 <Skeleton className="h-60 w-full rounded-card" />
               </li>
             ))}
           </ul>
         ) : companies.data && companies.data.data.length > 0 ? (
-          <ul className={cn("scrollbar-none relative -mx-4 flex snap-x snap-mandatory gap-3 overflow-x-auto scroll-px-4 px-4 pb-3 sm:mx-0 sm:grid sm:snap-none sm:grid-cols-2 sm:gap-4 sm:overflow-visible sm:px-0 sm:pb-0 lg:grid-cols-4", companies.isPlaceholderData && "opacity-60 transition-opacity")}>
+          <ul className={cn("grid grid-cols-2 gap-3 sm:grid-cols-2 sm:gap-4 lg:grid-cols-4", companies.isPlaceholderData && "opacity-60 transition-opacity")}>
             {companies.data.data.map((d) => (
               <ShowcaseCard key={d.id} d={d} onEnquire={(x) => setEnquiry({ slug: x.slug, name: x.name })} />
             ))}
@@ -137,7 +144,7 @@ export function Showcase() {
             </Link>
           </Button>
           {companies.data && companies.data.pagination.total > 0 && (
-            <span className="text-sm text-muted">
+            <span className="hidden text-sm text-muted sm:inline">
               Showing {companies.data.data.length} of {companies.data.pagination.total} in {label}
             </span>
           )}
@@ -152,7 +159,7 @@ export function Showcase() {
               View all products <ArrowRight className="h-4 w-4" aria-hidden />
             </Link>
           </div>
-          <ul className={cn("scrollbar-none relative -mx-4 flex snap-x snap-mandatory gap-3 overflow-x-auto scroll-px-4 px-4 pb-3 sm:mx-0 sm:grid sm:snap-none sm:grid-cols-2 sm:gap-4 sm:overflow-visible sm:px-0 sm:pb-0 mt-5 lg:grid-cols-4", products.isPlaceholderData && "opacity-60 transition-opacity")}>
+          <ul className={cn("grid grid-cols-2 gap-3 sm:grid-cols-2 sm:gap-4 mt-5 lg:grid-cols-4", products.isPlaceholderData && "opacity-60 transition-opacity")}>
             {productItems.map((p) => (
               <ProductTile key={p.id} p={p} />
             ))}

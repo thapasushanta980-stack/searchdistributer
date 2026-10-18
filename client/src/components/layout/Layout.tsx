@@ -1,6 +1,6 @@
-import { ChevronRight, WifiOff } from "lucide-react";
+import { ArrowLeft, ChevronRight, WifiOff } from "lucide-react";
 import type { ReactNode } from "react";
-import { Link } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
 import { useOnlineStatus } from "@/lib/utils";
 import { SiteFooter } from "./SiteFooter";
 import { SiteHeader } from "./SiteHeader";
@@ -27,9 +27,26 @@ export function Layout({ children }: { children: ReactNode }) {
 }
 
 export function Breadcrumbs({ items }: { items: Array<{ name: string; to?: string }> }) {
+  const navigate = useNavigate();
+  // The nearest linked ancestor is where "back" lands when the page was opened directly (no in-app history).
+  const parent = [...items].reverse().find((i) => i.to)?.to ?? "/";
+  const goBack = () => {
+    const idx = (window.history.state as { idx?: number } | null)?.idx ?? 0;
+    if (idx > 0) navigate(-1);
+    else navigate(parent);
+  };
   return (
-    <nav aria-label="Breadcrumb" className="text-sm">
-      <ol className="scrollbar-none relative -mx-4 flex items-center gap-1.5 overflow-x-auto whitespace-nowrap px-4 text-muted sm:mx-0 sm:flex-wrap sm:overflow-visible sm:px-0">
+    <div className="flex items-center gap-1 sm:block">
+      <button
+        type="button"
+        onClick={goBack}
+        aria-label="Go back"
+        className="-ml-2 flex h-11 w-11 shrink-0 items-center justify-center rounded-full text-ink transition-colors hover:bg-slate-100 sm:hidden"
+      >
+        <ArrowLeft className="h-5 w-5" aria-hidden />
+      </button>
+      <nav aria-label="Breadcrumb" className="min-w-0 flex-1 text-sm">
+        <ol className="scrollbar-none relative -mr-4 flex items-center gap-1.5 overflow-x-auto whitespace-nowrap pr-4 text-muted sm:mr-0 sm:flex-wrap sm:overflow-visible sm:pr-0">
         {items.map((item, i) => {
           const last = i === items.length - 1;
           return (
@@ -49,5 +66,6 @@ export function Breadcrumbs({ items }: { items: Array<{ name: string; to?: strin
         })}
       </ol>
     </nav>
+    </div>
   );
 }
