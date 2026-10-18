@@ -45,6 +45,7 @@ export async function mountSsr(app: Express): Promise<void> {
   type ViteDev = import("vite").ViteDevServer;
   let vite: ViteDev | undefined;
   let prodTemplate = "";
+  let prodAdminTemplate = "";
   let prodRender: RenderFn | undefined;
 
   if (config.isProd) {
@@ -52,6 +53,7 @@ export async function mountSsr(app: Express): Promise<void> {
       throw new Error("Client build not found. Run `npm run build` before starting in production.");
     }
     prodTemplate = fs.readFileSync(path.join(distClient, "index.html"), "utf-8");
+    prodAdminTemplate = fs.readFileSync(path.join(distClient, "admin.html"), "utf-8");
     prodRender = (await import(pathToFileURL(path.join(distServer, "entry-server.js")).href)).render as RenderFn;
     // Hashed assets are immutable; everything else revalidates.
     app.use(
@@ -75,6 +77,16 @@ export async function mountSsr(app: Express): Promise<void> {
   }
 
   app.use(express.static(path.join(clientDir, "public"), { index: false, maxAge: config.isProd ? "1d" : 0 }));
+
+  // Back office: a client-only app, never server-rendered or indexed. Data comes from /api/admin/v1 behind the login.
+  app.get(["/admin", "/admin/*"], async (req: Request, res: Response, next: NextFunction) => {
+    try {
+      const html = vite ? await vite.transformIndexHtml(req.originalUrl, fs.readFileSync(path.join(clientDir, "admin.html"), "utf-8")) : prodAdminTemplate;
+      res.status(200).setHeader("Content-Type", "text/html; charset=utf-8").setHeader("Cache-Control", "no-store").setHeader("X-Robots-Tag", "noindex, nofollow").send(html);
+    } catch (err) {
+      next(err);
+    }
+  });
 
   app.get("*", async (req: Request, res: Response, next: NextFunction) => {
     const url = req.originalUrl;

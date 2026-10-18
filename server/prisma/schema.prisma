@@ -96,6 +96,11 @@ enum AdStatus {
   COMPLETED
 }
 
+enum AdminRole {
+  SUPER_ADMIN
+  MODERATOR
+}
+
 enum OutboxStatus {
   PENDING
   SENT
@@ -393,4 +398,60 @@ model AdCampaign {
 
   @@index([placement, status, startsAt, endsAt])
   @@map("ad_campaigns")
+}
+
+/// Back-office staff. Entirely separate from Organisations (brand accounts are not built yet).
+model AdminUser {
+  id           String         @id @default(uuid())
+  email        String         @unique
+  name         String
+  /// scrypt$N$r$p$salt$hash. Never returned by any API.
+  passwordHash String
+  role         AdminRole      @default(MODERATOR)
+  isActive     Boolean        @default(true)
+  lastLoginAt  DateTime?
+  createdAt    DateTime       @default(now())
+  updatedAt    DateTime       @updatedAt
+
+  sessions     AdminSession[]
+  auditLogs    AuditLog[]
+
+  @@map("admin_users")
+}
+
+/// Server-side session. Only the SHA-256 of the cookie token is stored.
+model AdminSession {
+  id         String    @id @default(uuid())
+  tokenHash  String    @unique
+  adminId    String
+  admin      AdminUser @relation(fields: [adminId], references: [id], onDelete: Cascade)
+  expiresAt  DateTime
+  lastSeenAt DateTime  @default(now())
+  ip         String?
+  userAgent  String?
+  createdAt  DateTime  @default(now())
+
+  @@index([adminId])
+  @@index([expiresAt])
+  @@map("admin_sessions")
+}
+
+/// Append-only record of every admin action that changes data.
+model AuditLog {
+  id         String     @id @default(uuid())
+  adminId    String?
+  admin      AdminUser? @relation(fields: [adminId], references: [id], onDelete: SetNull)
+  /// e.g. "requirement.approve", "admin.login".
+  action     String
+  entityType String?
+  entityId   String?
+  /// Before/after values or a reason. Never contains secrets or contact details.
+  meta       Json?
+  ip         String?
+  createdAt  DateTime   @default(now())
+
+  @@index([entityType, entityId])
+  @@index([adminId, createdAt])
+  @@index([createdAt])
+  @@map("audit_logs")
 }

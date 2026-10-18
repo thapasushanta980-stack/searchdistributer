@@ -207,6 +207,12 @@ export async function getDistributorBySlug(slug: string): Promise<DistributorDet
 const featuredCache = new TtlCache<DistributorCardDTO[]>(30_000);
 const facetsCache = new TtlCache<FacetsResponse>(60_000);
 
+/** Call after an admin approves, pauses, features or otherwise changes a listing. */
+export function clearDistributorCaches() {
+  featuredCache.clear();
+  facetsCache.clear();
+}
+
 export function getFeatured(): Promise<DistributorCardDTO[]> {
   return featuredCache.get("featured", async () => {
     const now = new Date();

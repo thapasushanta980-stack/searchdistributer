@@ -11,6 +11,8 @@ export default defineConfig({
     target: "es2022",
     cssCodeSplit: false,
     rollupOptions: {
+      // Two client entries: the public SSR app and the client-only admin app. (The SSR build passes its own entry.)
+      input: { main: path.resolve(__dirname, "index.html"), admin: path.resolve(__dirname, "admin.html") },
       output: {
         // Long-lived vendor chunks cache across deploys; app code changes more often.
         manualChunks(id) {

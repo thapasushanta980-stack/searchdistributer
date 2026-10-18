@@ -6,6 +6,9 @@ import { eligibleDistributorSql } from "../distributors/eligibility.js";
 
 const cache = new TtlCache<CategoryDTO[]>(30_000);
 
+/** Call after an admin changes anything that affects category counts or visibility. */
+export const clearCategoryCache = () => cache.clear();
+
 /** Category hierarchy with the number of publicly discoverable distributors per node. */
 export function getCategoryTree(): Promise<CategoryDTO[]> {
   return cache.get("tree", async () => {

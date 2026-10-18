@@ -6,3 +6,4 @@ dist
 .pgdata
 .dev.log
 .prod.log
+data/

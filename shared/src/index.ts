@@ -600,3 +600,68 @@ export interface AdDTO {
   href: string;
   isDemo: boolean;
 }
+
+/* ------------------------------------------------------------------ */
+/* Admin (back office)                                                 */
+/* ------------------------------------------------------------------ */
+
+export const ADMIN_ROLES = ["SUPER_ADMIN", "MODERATOR"] as const;
+export type AdminRole = (typeof ADMIN_ROLES)[number];
+
+export const adminLoginSchema = z.object({
+  email: z.string().trim().email().max(200),
+  password: z.string().min(1).max(200),
+});
+
+/** Approve or reject something in a moderation queue. A reason is required to reject. */
+export const moderationDecisionSchema = z
+  .object({
+    decision: z.enum(["APPROVE", "REJECT"]),
+    reason: z.string().trim().max(500).optional(),
+  })
+  .refine((v) => v.decision === "APPROVE" || !!v.reason, { path: ["reason"], message: "Give a reason when rejecting." });
+export type ModerationDecision = z.output<typeof moderationDecisionSchema>;
+
+export interface AdminMeDTO {
+  id: string;
+  email: string;
+  name: string;
+  role: AdminRole;
+}
+
+export interface AdminStatsDTO {
+  requirementsPending: number;
+  listingsPending: number;
+  productsPending: number;
+  adsPending: number;
+  enquiriesAwaitingVerification: number;
+  outboxFailed: number;
+  leadsLast7Days: number;
+}
+
+/** Full record for moderators: includes the private contact snapshot that is never public. */
+export interface AdminRequirementDTO {
+  id: string;
+  reference: string;
+  slug: string;
+  kind: RequirementKind;
+  title: string;
+  description: string;
+  status: "PENDING_REVIEW" | "APPROVED" | "REJECTED" | "CLOSED";
+  category: { slug: string; name: string } | null;
+  contactName: string;
+  contactEmail: string;
+  contactPhone: string;
+  companyName: string | null;
+  createdAt: string;
+}
+
+export interface AdminAuditDTO {
+  id: string;
+  action: string;
+  entityType: string | null;
+  entityId: string | null;
+  meta: unknown;
+  admin: { name: string; email: string } | null;
+  createdAt: string;
+}

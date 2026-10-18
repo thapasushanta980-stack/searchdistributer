@@ -44,6 +44,7 @@ const limiter = (windowMs: number, limit: number, message: string) =>
 export const apiLimiter = limiter(60_000, 240, "Too many requests. Please slow down and try again shortly.");
 export const writeLimiter = limiter(10 * 60_000, 8, "Too many submissions from this connection. Please try again in a few minutes.");
 export const adEventLimiter = limiter(60_000, 60, "Too many requests.");
+export const adminLoginLimiter = limiter(15 * 60_000, 10, "Too many sign-in attempts. Please try again later.");
 export const verifyLimiter = limiter(10 * 60_000, 30, "Too many attempts. Please try again in a few minutes.");
 
 export function notFoundApi(_req: Request, res: Response) {
