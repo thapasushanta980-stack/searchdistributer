@@ -130,7 +130,7 @@ export function ResultsSection({ lockedCategory, lockedBusinessType, basePath, s
               <label htmlFor="sort" className="sr-only">
                 Sort results
               </label>
-              <Select id="sort" value={params.sort} onChange={(e) => update({ sort: e.target.value as SortOption })} className="h-9 w-auto py-0 pr-9 text-sm">
+              <Select id="sort" value={params.sort} onChange={(e) => update({ sort: e.target.value as SortOption })} className="h-11 w-auto py-0 pr-9 text-sm sm:h-9">
                 {SORT_OPTIONS.map((s) => (
                   <option key={s} value={s}>
                     {SORT_LABELS[s]}

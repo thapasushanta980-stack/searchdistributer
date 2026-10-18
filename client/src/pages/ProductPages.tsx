@@ -19,7 +19,7 @@ import { NotFoundPage } from "./NotFoundPage";
 
 export function ProductTile({ p }: { p: ProductListItemDTO }) {
   return (
-    <li className="group/p flex flex-col overflow-hidden rounded-card border border-line bg-surface shadow-card transition-[box-shadow,transform,border-color] duration-200 hover:-translate-y-1 hover:border-line-strong hover:shadow-card-hover">
+    <li className="group/p flex w-[76%] shrink-0 snap-start flex-col sm:w-auto overflow-hidden rounded-card border border-line bg-surface shadow-card transition-[box-shadow,transform,border-color] duration-200 hover:-translate-y-1 hover:border-line-strong hover:shadow-card-hover">
       <div className="flex h-36 items-center justify-center bg-gradient-to-br from-slate-50 to-primary-soft/60 text-slate-300" aria-hidden>
         <Package className="h-10 w-10" />
       </div>
@@ -34,7 +34,7 @@ export function ProductTile({ p }: { p: ProductListItemDTO }) {
         <p className="mt-0.5 flex items-center gap-1 text-xs text-muted">
           <MapPin className="h-3.5 w-3.5" aria-hidden /> {p.distributor.location}
         </p>
-        <Link to={`/products/${p.publicSlug}`} className="mt-auto pt-4 text-sm font-semibold text-primary hover:underline">
+        <Link to={`/products/${p.publicSlug}`} className="mt-auto inline-flex min-h-11 items-center pt-2 text-sm font-semibold text-primary hover:underline">
           View Product <span className="sr-only">{p.name}</span>
         </Link>
       </div>
@@ -207,13 +207,13 @@ export function ProductDetailPage() {
       <PageHead spec={spec} site={site} />
       <div className="container-page py-8 sm:py-10">
         <Breadcrumbs items={[{ name: "Home", to: "/" }, { name: "Products", to: "/products" }, ...(p.category ? [{ name: p.category.name, to: `/categories/${p.category.slug}` }] : []), { name: p.name }]} />
-        <div className="mt-8 grid gap-8 pb-24 lg:grid-cols-[1.1fr_1fr] lg:pb-0">
+        <div className="mt-4 grid grid-cols-[minmax(0,1fr)] gap-6 pb-24 sm:mt-8 sm:gap-8 lg:grid-cols-[1.1fr_1fr] lg:pb-0">
           <div className="flex aspect-[4/3] items-center justify-center rounded-card border border-line bg-gradient-to-br from-slate-50 to-primary-soft/60 text-slate-300" role="img" aria-label="Product image not provided yet">
             <Package className="h-20 w-20" aria-hidden />
           </div>
           <div>
             {p.category && <p className="text-xs font-semibold uppercase tracking-wide text-primary">{p.category.name}</p>}
-            <h1 className="mt-2 text-3xl sm:text-4xl">{p.name}</h1>
+            <h1 className="mt-2 text-2xl sm:text-4xl">{p.name}</h1>
             <p className="mt-2 text-slate-600">
               by{" "}
               <Link to={`/distributors/${d.slug}`} className="font-medium text-primary hover:underline">
@@ -222,21 +222,21 @@ export function ProductDetailPage() {
             </p>
             {p.description && <p className="mt-5 leading-relaxed text-slate-700">{p.description}</p>}
             <dl className="mt-6 divide-y divide-line rounded-xl border border-line text-sm">
-              <div className="grid grid-cols-[150px_1fr] gap-2 px-4 py-3">
+              <div className="grid grid-cols-[104px_minmax(0,1fr)] gap-2 px-4 py-3 sm:grid-cols-[150px_1fr]">
                 <dt className="text-muted">Manufacturer / Brand</dt>
                 <dd className="font-medium text-ink">{d.name}</dd>
               </div>
               {p.packaging && (
-                <div className="grid grid-cols-[150px_1fr] gap-2 px-4 py-3">
+                <div className="grid grid-cols-[104px_minmax(0,1fr)] gap-2 px-4 py-3 sm:grid-cols-[150px_1fr]">
                   <dt className="text-muted">Packaging</dt>
                   <dd className="font-medium text-ink">{p.packaging}</dd>
                 </div>
               )}
-              <div className="grid grid-cols-[150px_1fr] gap-2 px-4 py-3">
+              <div className="grid grid-cols-[104px_minmax(0,1fr)] gap-2 px-4 py-3 sm:grid-cols-[150px_1fr]">
                 <dt className="text-muted">Price</dt>
                 <dd className="font-medium text-ink">{p.priceLabel ?? "Contact for details"}</dd>
               </div>
-              <div className="grid grid-cols-[150px_1fr] gap-2 px-4 py-3">
+              <div className="grid grid-cols-[104px_minmax(0,1fr)] gap-2 px-4 py-3 sm:grid-cols-[150px_1fr]">
                 <dt className="text-muted">Available in</dt>
                 <dd className="font-medium text-ink">{d.coverage === "INTERNATIONAL" ? "International" : d.coverage === "NATIONAL" ? "Nationwide" : "Local area"} · {d.location}</dd>
               </div>

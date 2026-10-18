@@ -2,7 +2,7 @@ import { forwardRef, useId, type InputHTMLAttributes, type ReactNode, type Texta
 import { cn } from "@/lib/utils";
 
 const fieldBase =
-  "w-full rounded-input border border-line-strong bg-surface px-3.5 text-[15px] text-ink placeholder:text-slate-400 transition-[border-color,box-shadow] duration-150 hover:border-slate-400 focus:border-primary focus:outline-none focus:ring-4 focus:ring-primary/15 aria-[invalid=true]:border-danger aria-[invalid=true]:focus:ring-danger/15 disabled:bg-slate-50";
+  "w-full rounded-input border border-line-strong bg-surface px-3.5 text-base text-ink sm:text-[15px] placeholder:text-slate-400 transition-[border-color,box-shadow] duration-150 hover:border-slate-400 focus:border-primary focus:outline-none focus:ring-4 focus:ring-primary/15 aria-[invalid=true]:border-danger aria-[invalid=true]:focus:ring-danger/15 disabled:bg-slate-50";
 
 export const Input = forwardRef<HTMLInputElement, InputHTMLAttributes<HTMLInputElement>>(({ className, ...props }, ref) => (
   <input ref={ref} className={cn(fieldBase, "h-11", className)} {...props} />

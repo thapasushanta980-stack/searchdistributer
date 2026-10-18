@@ -74,7 +74,7 @@ function DialogHeader({ title, description, hideTitle }: { title: string; descri
       </div>
       <DialogPrimitive.Close
         aria-label="Close"
-        className="-mr-1.5 flex h-9 w-9 shrink-0 items-center justify-center rounded-lg text-muted transition-colors hover:bg-slate-100 hover:text-ink"
+        className="-mr-2 flex h-11 w-11 shrink-0 sm:-mr-1.5 sm:h-9 sm:w-9 items-center justify-center rounded-lg text-muted transition-colors hover:bg-slate-100 hover:text-ink"
       >
         <X className="h-5 w-5" aria-hidden />
       </DialogPrimitive.Close>

@@ -46,21 +46,21 @@ export function CategoriesPage() {
         {tree.length === 0 ? (
           <p className="mt-10 rounded-card border border-dashed border-line-strong bg-surface p-10 text-center text-muted">No categories are available yet.</p>
         ) : (
-          <ul className="mt-10 grid gap-5 sm:grid-cols-2 lg:grid-cols-3">
+          <ul className="mt-6 grid gap-3 sm:mt-10 sm:grid-cols-2 sm:gap-5 lg:grid-cols-3">
             {tree.map((c) => (
-              <li key={c.slug} className="rounded-card border border-line bg-surface p-6 shadow-card transition-[box-shadow,transform] duration-200 hover:-translate-y-1 hover:shadow-card-hover">
-                <h2 className="text-xl">
-                  <Link to={`/categories/${c.slug}`} className="inline-flex items-center gap-2 hover:text-primary">
+              <li key={c.slug} className="rounded-card border border-line bg-surface p-4 shadow-card transition-[box-shadow,transform] sm:p-6 duration-200 hover:-translate-y-1 hover:shadow-card-hover">
+                <h2 className="text-lg sm:text-xl">
+                  <Link to={`/categories/${c.slug}`} className="inline-flex min-h-11 items-center gap-2 hover:text-primary sm:min-h-0">
                     {c.name}
                     <span className="rounded-full bg-primary-soft px-2 py-0.5 text-xs font-semibold text-primary-dark tabular-nums">{c.distributorCount}</span>
                   </Link>
                 </h2>
                 {c.description && <p className="mt-2 text-sm text-muted">{c.description}</p>}
                 {c.children.length > 0 && (
-                  <ul className="mt-4 space-y-1.5 border-t border-line pt-4">
+                  <ul className="mt-2 border-t border-line pt-2 sm:mt-4 sm:space-y-1.5 sm:pt-4">
                     {c.children.map((ch) => (
                       <li key={ch.slug}>
-                        <Link to={`/categories/${ch.slug}`} className="group flex items-center justify-between rounded-lg px-1 py-1 text-sm text-slate-700 hover:text-primary">
+                        <Link to={`/categories/${ch.slug}`} className="group flex min-h-11 items-center justify-between rounded-lg px-1 text-sm sm:min-h-0 sm:py-1 text-slate-700 hover:text-primary">
                           <span>{ch.name}</span>
                           <span className="flex items-center gap-1 text-xs text-muted tabular-nums">
                             {ch.distributorCount}
@@ -123,10 +123,10 @@ export function CategoryPage() {
           <h1 className="mt-5 text-3xl sm:text-4xl">{category.name} distributors</h1>
           {category.description && <p className="mt-3 max-w-2xl text-slate-600">{category.description}</p>}
           {category.children.length > 0 && (
-            <ul className="mt-5 flex flex-wrap gap-2" aria-label="Subcategories">
+            <ul className="scrollbar-none relative -mx-4 mt-4 flex gap-2 overflow-x-auto px-4 pb-1 sm:mx-0 sm:mt-5 sm:flex-wrap sm:overflow-visible sm:px-0 sm:pb-0" aria-label="Subcategories">
               {category.children.map((ch) => (
-                <li key={ch.slug}>
-                  <Link to={`/categories/${ch.slug}`} className="inline-flex rounded-full border border-line-strong bg-white px-3.5 py-1.5 text-sm font-medium text-slate-700 hover:border-primary/50 hover:bg-primary-soft hover:text-primary-dark">
+                <li key={ch.slug} className="shrink-0">
+                  <Link to={`/categories/${ch.slug}`} className="inline-flex whitespace-nowrap rounded-full border border-line-strong bg-white px-3.5 py-1.5 text-sm font-medium text-slate-700 hover:border-primary/50 hover:bg-primary-soft hover:text-primary-dark">
                     {ch.name} <span className="ml-1.5 text-xs text-muted tabular-nums">{ch.distributorCount}</span>
                   </Link>
                 </li>

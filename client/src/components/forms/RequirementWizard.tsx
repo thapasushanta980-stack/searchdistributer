@@ -149,7 +149,7 @@ export function RequirementWizard() {
           <li key={label} aria-current={i === step ? "step" : undefined} className="min-w-0">
             <div className={cn("h-1.5 rounded-full transition-colors duration-300", i <= step ? "bg-primary" : "bg-slate-200")} />
             <p className={cn("mt-2 flex items-center gap-1.5 truncate text-xs font-medium sm:text-sm", i === step ? "text-ink" : "text-muted")}>
-              <span className={cn("flex h-5 w-5 shrink-0 items-center justify-center rounded-full text-[11px]", i < step ? "bg-primary text-white" : i === step ? "bg-primary-soft text-primary-dark" : "bg-slate-100 text-slate-500")}>
+              <span className={cn("flex h-5 w-5 shrink-0 items-center justify-center rounded-full text-xs", i < step ? "bg-primary text-white" : i === step ? "bg-primary-soft text-primary-dark" : "bg-slate-100 text-slate-500")}>
                 {i < step ? <Check className="h-3 w-3" aria-hidden /> : i + 1}
               </span>
               <span className="hidden truncate sm:inline">{label}</span>

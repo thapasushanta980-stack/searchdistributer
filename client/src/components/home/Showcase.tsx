@@ -22,7 +22,7 @@ export const SHOWCASE_PRODUCTS: ProductSearchParams = { page: 1 };
 /** Compact, logo-led company tile: logo panel with category chip, name, location, two actions. */
 function ShowcaseCard({ d, onEnquire }: { d: DistributorCardDTO; onEnquire: (d: DistributorCardDTO) => void }) {
   return (
-    <li className="min-w-0 list-none">
+    <li className="w-[76%] min-w-0 shrink-0 snap-start list-none sm:w-auto">
       <m.article
         whileHover={{ y: -3 }}
         transition={{ type: "spring", stiffness: 420, damping: 30 }}
@@ -37,7 +37,7 @@ function ShowcaseCard({ d, onEnquire }: { d: DistributorCardDTO; onEnquire: (d: 
               {initials(d.name)}
             </span>
           )}
-          <span className="absolute left-2 top-2 max-w-[70%] truncate rounded bg-night px-2 py-0.5 text-[10px] font-semibold text-white">{d.category?.name ?? BUSINESS_TYPE_LABELS[d.businessType]}</span>
+          <span className="absolute left-2 top-2 max-w-[70%] truncate rounded bg-night px-2 py-0.5 text-xs font-semibold text-white">{d.category?.name ?? BUSINESS_TYPE_LABELS[d.businessType]}</span>
           {d.verificationStatus === "VERIFIED" && (
             <span className="absolute right-2 top-2 flex h-6 w-6 items-center justify-center rounded-full bg-green-50 text-success" title="Verified business">
               <BadgeCheck className="h-4 w-4" aria-hidden />
@@ -113,15 +113,15 @@ export function Showcase() {
 
       <div role="tabpanel" aria-live="polite" className="mt-6">
         {companies.isPending ? (
-          <ul aria-busy="true" className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+          <ul aria-busy="true" className="scrollbar-none relative -mx-4 flex snap-x snap-mandatory gap-3 overflow-x-auto scroll-px-4 px-4 pb-3 sm:mx-0 sm:grid sm:snap-none sm:grid-cols-2 sm:gap-4 sm:overflow-visible sm:px-0 sm:pb-0 lg:grid-cols-4">
             {Array.from({ length: 4 }, (_, i) => (
-              <li key={i}>
+              <li key={i} className="w-[76%] shrink-0 sm:w-auto">
                 <Skeleton className="h-60 w-full rounded-card" />
               </li>
             ))}
           </ul>
         ) : companies.data && companies.data.data.length > 0 ? (
-          <ul className={cn("grid gap-4 sm:grid-cols-2 lg:grid-cols-4", companies.isPlaceholderData && "opacity-60 transition-opacity")}>
+          <ul className={cn("scrollbar-none relative -mx-4 flex snap-x snap-mandatory gap-3 overflow-x-auto scroll-px-4 px-4 pb-3 sm:mx-0 sm:grid sm:snap-none sm:grid-cols-2 sm:gap-4 sm:overflow-visible sm:px-0 sm:pb-0 lg:grid-cols-4", companies.isPlaceholderData && "opacity-60 transition-opacity")}>
             {companies.data.data.map((d) => (
               <ShowcaseCard key={d.id} d={d} onEnquire={(x) => setEnquiry({ slug: x.slug, name: x.name })} />
             ))}
@@ -130,8 +130,8 @@ export function Showcase() {
           <p className="rounded-card border border-dashed border-line-strong bg-surface p-8 text-center text-sm text-muted">Company profiles appear here as businesses are approved and published.</p>
         )}
 
-        <div className="mt-6 flex flex-wrap items-center gap-3">
-          <Button asChild variant="secondary" size="lg">
+        <div className="mt-5 flex flex-col gap-3 sm:flex-row sm:flex-wrap sm:items-center">
+          <Button asChild variant="secondary" size="lg" className="w-full sm:w-auto">
             <Link to={slug ? `/categories/${slug}` : "/distributors"}>
               View all companies <ArrowRight className="h-4 w-4" aria-hidden />
             </Link>
@@ -145,14 +145,14 @@ export function Showcase() {
       </div>
 
       {productItems.length > 0 && (
-        <div className="mt-12">
+        <div className="mt-10 sm:mt-12">
           <div className="flex flex-wrap items-end justify-between gap-3">
             <h3 className="text-xl sm:text-2xl">Products in {label}</h3>
-            <Link to={slug ? `/products?category=${slug}` : "/products"} className="inline-flex items-center gap-1.5 text-sm font-semibold text-primary hover:underline">
+            <Link to={slug ? `/products?category=${slug}` : "/products"} className="inline-flex min-h-11 items-center gap-1.5 text-sm font-semibold text-primary hover:underline sm:min-h-0">
               View all products <ArrowRight className="h-4 w-4" aria-hidden />
             </Link>
           </div>
-          <ul className={cn("mt-5 grid gap-4 sm:grid-cols-2 lg:grid-cols-4", products.isPlaceholderData && "opacity-60 transition-opacity")}>
+          <ul className={cn("scrollbar-none relative -mx-4 flex snap-x snap-mandatory gap-3 overflow-x-auto scroll-px-4 px-4 pb-3 sm:mx-0 sm:grid sm:snap-none sm:grid-cols-2 sm:gap-4 sm:overflow-visible sm:px-0 sm:pb-0 mt-5 lg:grid-cols-4", products.isPlaceholderData && "opacity-60 transition-opacity")}>
             {productItems.map((p) => (
               <ProductTile key={p.id} p={p} />
             ))}

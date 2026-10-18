@@ -81,7 +81,7 @@ const Shine = ({ delay = "0s" }: { delay?: string }) => <span aria-hidden classN
 /** Caption above every creative. The advertiser is named in the artwork and in the accessible label. */
 function AdCaption() {
   return (
-    <p className="mb-1.5 flex min-w-0 items-center gap-1.5 pl-1 text-[11px] font-semibold uppercase tracking-wider text-muted">
+    <p className="mb-1.5 flex min-w-0 items-center gap-1.5 pl-1 text-xs font-semibold uppercase tracking-wider text-muted">
       <Megaphone className="h-3 w-3" aria-hidden />
       Advertisement
     </p>
@@ -105,9 +105,9 @@ function ClickLayer({ ad }: { ad: AdDTO }) {
 
 function BannerCreative({ ad, big }: { ad: AdDTO; big: boolean }) {
   const ref = useImpression(ad.id, true);
-  const ratio = big ? "aspect-[16/9] sm:aspect-[1600/640]" : "aspect-[16/7] sm:aspect-[1600/420]";
+  const ratio = big ? "aspect-[2/1] sm:aspect-[1600/640]" : "aspect-[2/1] sm:aspect-[1600/420]";
   return (
-    <article ref={ref as never} aria-label={`Sponsored: ${ad.headline}`} {...parallax(8)} className={cn("relative isolate flex w-full overflow-hidden rounded-[20px] border border-line bg-night text-white transition-shadow duration-500 hover:shadow-[0_30px_80px_-30px_rgba(49,86,211,0.6)]", ratio, !big && "min-h-[150px]")}>
+    <article ref={ref as never} aria-label={`Sponsored: ${ad.headline}`} {...parallax(8)} className={cn("relative isolate flex w-full overflow-hidden rounded-[20px] border border-line bg-night text-white transition-shadow duration-500 hover:shadow-[0_30px_80px_-30px_rgba(49,86,211,0.6)]", ratio, "min-h-[170px] sm:min-h-0", !big && "sm:min-h-[150px]")}>
       {ad.imageUrl ? (
         <>
           <img src={ad.imageUrl} alt={ad.imageAlt ?? ad.headline} width={1600} height={640} loading="eager" decoding="async" className="ad-kenburns absolute -inset-1.5 h-[calc(100%+0.75rem)] w-[calc(100%+0.75rem)] max-w-none object-cover transition-[translate] duration-300 ease-out [translate:calc(var(--px,0)*1px)_calc(var(--py,0)*1px)]" />
@@ -146,7 +146,7 @@ const readDismissed = (): string[] => {
   }
 };
 
-const roundBtn = "flex h-9 w-9 items-center justify-center rounded-full bg-white/90 text-slate-800 shadow-md backdrop-blur transition-[background-color,transform] hover:bg-white active:scale-95";
+const roundBtn = "flex h-11 w-11 items-center justify-center sm:h-9 sm:w-9 rounded-full bg-white/90 text-slate-800 shadow-md backdrop-blur transition-[background-color,transform] hover:bg-white active:scale-95";
 
 export function AdBanner({ placement, fallback, dismissible, big, className }: { placement: AdPlacement; fallback?: boolean; dismissible?: boolean; big?: boolean; className?: string }) {
   const api = useApi();
@@ -273,7 +273,7 @@ export function AdBanner({ placement, fallback, dismissible, big, className }: {
         </>
       )}
       {dismissible && (
-        <button type="button" onClick={close} aria-label="Dismiss advertisement" className={cn(roundBtn, "absolute right-3 top-3 z-10 h-8 w-8")}>
+        <button type="button" onClick={close} aria-label="Dismiss advertisement" className={cn(roundBtn, "absolute right-2 top-2 z-10 sm:right-3 sm:top-3 sm:h-8 sm:w-8")}>
           <X className="h-4 w-4" aria-hidden />
         </button>
       )}
@@ -289,7 +289,7 @@ export function AdBanner({ placement, fallback, dismissible, big, className }: {
 function SpotlightCard({ ad }: { ad: AdDTO }) {
   const ref = useImpression(ad.id, true);
   return (
-    <li className="min-w-0 list-none">
+    <li className="w-[74%] min-w-0 shrink-0 snap-start list-none sm:w-auto">
       <AdCaption />
       <m.article
         ref={ref as never}
@@ -297,7 +297,7 @@ function SpotlightCard({ ad }: { ad: AdDTO }) {
         transition={{ type: "spring", stiffness: 420, damping: 30 }}
         aria-label={`Sponsored: ${ad.headline}`}
         {...parallax(6)}
-        className="group/ad relative isolate flex aspect-[2/1] min-h-[170px] w-full overflow-hidden rounded-[18px] border border-line bg-white shadow-card transition-[box-shadow,border-color] duration-300 hover:border-primary/40 hover:shadow-[0_26px_60px_-26px_rgba(49,86,211,0.55)]"
+        className="group/ad relative isolate flex aspect-[2/1] w-full overflow-hidden rounded-[18px] sm:min-h-[170px] border border-line bg-white shadow-card transition-[box-shadow,border-color] duration-300 hover:border-primary/40 hover:shadow-[0_26px_60px_-26px_rgba(49,86,211,0.55)]"
       >
         {ad.imageUrl ? (
           <>
@@ -328,7 +328,7 @@ export function AdSpotlight({ className }: { className?: string }) {
   if (!ads.length) return null;
   return (
     <aside aria-label="Advertisements" className={className}>
-      <ul className={cn("grid grid-cols-[minmax(0,1fr)] gap-5", ads.length > 1 && "md:grid-cols-2")}>
+      <ul className={cn("scrollbar-none relative -mx-4 flex snap-x snap-mandatory gap-3 overflow-x-auto scroll-px-4 px-4 pb-1 sm:mx-0 sm:grid sm:snap-none sm:grid-cols-[minmax(0,1fr)] sm:gap-5 sm:overflow-visible sm:px-0 sm:pb-0", ads.length > 1 && "md:grid-cols-2")}>
         {ads.slice(0, 2).map((ad) => (
           <SpotlightCard key={ad.id} ad={ad} />
         ))}

@@ -47,8 +47,8 @@ export function SiteFooter() {
   const site = useSite();
   return (
     <Reveal as="footer" className="border-t border-line bg-white">
-      <div className="container-page grid gap-10 py-12 md:grid-cols-[1.4fr_repeat(4,1fr)]">
-        <div className="max-w-xs">
+      <div className="container-page grid grid-cols-2 gap-x-6 gap-y-8 py-9 sm:grid-cols-4 md:grid-cols-[1.4fr_repeat(4,1fr)] md:gap-10 md:py-12">
+        <div className="col-span-2 max-w-xs sm:col-span-4 md:col-span-1">
           <Logo />
           <p className="mt-4 text-sm leading-relaxed text-muted">
             Find the right distributor. Grow your business.
@@ -57,10 +57,10 @@ export function SiteFooter() {
         {COLUMNS.map((col) => (
           <nav key={col.title} aria-label={col.title}>
             <h2 className="font-sans text-sm font-semibold tracking-normal text-ink">{col.title}</h2>
-            <ul className="mt-4 space-y-2.5">
+            <ul className="mt-1 md:mt-4 md:space-y-2.5">
               {col.links.map((l) => (
                 <li key={l.to}>
-                  <Link to={l.to} className="text-sm text-muted transition-colors hover:text-primary">
+                  <Link to={l.to} className="inline-flex min-h-11 items-center text-sm text-muted transition-colors hover:text-primary md:min-h-0">
                     {l.label}
                   </Link>
                 </li>
@@ -76,11 +76,11 @@ export function SiteFooter() {
           </p>
           <div className="flex flex-wrap items-center gap-x-5 gap-y-2">
             {site.supportEmail ? (
-              <a href={`mailto:${site.supportEmail}`} className="inline-flex items-center gap-1.5 hover:text-primary">
+              <a href={`mailto:${site.supportEmail}`} className="inline-flex min-h-11 items-center gap-1.5 hover:text-primary sm:min-h-0">
                 <Mail className="h-4 w-4" aria-hidden /> {site.supportEmail}
               </a>
             ) : (
-              <Link to="/contact" className="inline-flex items-center gap-1.5 hover:text-primary">
+              <Link to="/contact" className="inline-flex min-h-11 items-center gap-1.5 hover:text-primary sm:min-h-0">
                 <Mail className="h-4 w-4" aria-hidden /> Contact us
               </Link>
             )}

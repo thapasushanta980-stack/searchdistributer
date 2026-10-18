@@ -21,17 +21,10 @@ import { abs, organizationLd, websiteLd } from "@/seo/builders";
 export const HOME_LEADS: RequirementSearchParams = { ...parseRequirementSearch(new URLSearchParams()), page: 1 };
 
 const TABS = [
-  { id: "distributors", label: "Find Distributors", path: "/distributors", placeholder: "Search products, brands, distributors or keywords", location: true },
-  { id: "products", label: "Find Products", path: "/products", placeholder: "Search products or brands", location: false },
-  { id: "brands", label: "Find Brands", path: "/brands", placeholder: "Search brands or manufacturers", location: true },
-  { id: "leads", label: "Distributor Leads", path: "/leads", placeholder: "Search requirements or products", location: true },
-] as const;
-
-const STEPS = [
-  { n: "01", title: "Search", text: "Find distributors, brands, products or opportunities." },
-  { n: "02", title: "Explore", text: "Review company profiles, products and requirements." },
-  { n: "03", title: "Connect", text: "Send an enquiry to the relevant business." },
-  { n: "04", title: "Grow", text: "Build new distribution relationships." },
+  { id: "distributors", label: "Find Distributors", path: "/distributors", placeholder: "Product, brand or keyword", location: true },
+  { id: "products", label: "Find Products", path: "/products", placeholder: "Product or brand name", location: false },
+  { id: "brands", label: "Find Brands", path: "/brands", placeholder: "Brand or manufacturer", location: true },
+  { id: "leads", label: "Distributor Leads", path: "/leads", placeholder: "Requirement or product", location: true },
 ] as const;
 
 const WHY = [
@@ -55,7 +48,7 @@ function Head({ eyebrow, title, text, action }: { eyebrow: string; title: string
 }
 
 const Section = ({ children }: { children: ReactNode }) => (
-  <Reveal as="section" className="container-page py-14 sm:py-20">
+  <Reveal as="section" className="container-page py-8 sm:py-20">
     {children}
   </Reveal>
 );
@@ -104,20 +97,20 @@ export function HomePage() {
         <div className="hero-bg" aria-hidden>
           <div className="hero-grid" />
         </div>
-        <div className="mx-auto grid max-w-[1320px] items-center gap-10 px-4 pb-16 pt-10 sm:px-6 lg:grid-cols-[1.4fr_0.6fr] lg:gap-4 lg:pb-24 lg:pt-16">
-          <div>
-            <p className="anim-rise text-xs font-bold uppercase tracking-[0.18em] text-primary">THE B2B DISTRIBUTION NETWORK</p>
-            <h1 className="anim-rise mt-4 text-[2.4rem] leading-[1.05] sm:text-5xl lg:text-[3.6rem]" style={{ animationDelay: "60ms" }}>
+        <div className="mx-auto grid max-w-[1320px] grid-cols-[minmax(0,1fr)] items-center gap-10 px-4 pb-12 pt-8 sm:px-6 lg:grid-cols-[1.4fr_0.6fr] lg:gap-4 lg:pb-16 lg:pt-12">
+          <div className="min-w-0">
+            <p className="anim-rise inline-flex items-center gap-2 rounded-full bg-primary-soft px-3 py-1 text-xs font-bold uppercase tracking-[0.16em] text-primary-dark"><span className="h-1.5 w-1.5 rounded-full bg-primary" aria-hidden />The B2B Distribution Network</p>
+            <h1 className="anim-rise mt-4 text-[2rem] leading-[1.1] tracking-tight sm:text-4xl lg:text-[2.6rem]" style={{ animationDelay: "60ms" }}>
               Find the right distributor.
               <br />
               <span className="text-primary">Grow into new markets.</span>
             </h1>
-            <p className="anim-rise mt-5 max-w-xl text-base text-body sm:text-lg" style={{ animationDelay: "120ms" }}>
+            <p className="anim-rise mt-3 max-w-lg text-sm leading-relaxed text-body sm:text-base" style={{ animationDelay: "120ms" }}>
               Search distributors, discover products, explore brands and connect with businesses looking for new distribution opportunities.
             </p>
 
-            <div className="anim-pop relative z-20 mt-8 max-w-[820px]">
-              <div role="tablist" aria-label="What are you looking for?" className="mb-3 flex flex-wrap gap-1.5">
+            <div className="anim-pop relative z-20 mt-6 max-w-[680px]">
+              <div role="tablist" aria-label="What are you looking for?" className="scrollbar-none relative mb-3 flex max-w-full gap-1 overflow-x-auto rounded-full sm:inline-flex sm:flex-wrap sm:overflow-visible bg-white/80 p-1 shadow-sm ring-1 ring-line backdrop-blur">
                 {TABS.map((t) => (
                   <button
                     key={t.id}
@@ -126,7 +119,7 @@ export function HomePage() {
                     id={`tab-${t.id}`}
                     aria-selected={tab === t.id}
                     onClick={() => setTab(t.id)}
-                    className={cn("rounded-full px-4 py-2 text-sm font-semibold transition-colors", tab === t.id ? "bg-ink text-white" : "bg-white text-slate-600 ring-1 ring-line-strong hover:text-ink hover:ring-primary/40")}
+                    className={cn("min-h-11 shrink-0 whitespace-nowrap rounded-full px-4 text-sm font-semibold transition-colors sm:min-h-0 sm:px-3.5 sm:py-1.5 sm:text-[13px]", tab === t.id ? "bg-ink text-white shadow-sm" : "text-slate-600 hover:bg-slate-100 hover:text-ink")}
                   >
                     {t.label}
                   </button>
@@ -148,10 +141,10 @@ export function HomePage() {
               </div>
             </div>
             {popular.length > 0 && (
-              <div className="mt-5 flex flex-wrap items-center gap-2.5">
-                <span className="text-sm font-medium text-muted">Popular:</span>
+              <div className="scrollbar-none relative -mx-4 mt-4 flex items-center gap-2 overflow-x-auto px-4 pb-1 sm:mx-0 sm:flex-wrap sm:overflow-visible sm:px-0 sm:pb-0">
+                <span className="shrink-0 text-[13px] font-medium text-muted">Popular:</span>
                 {popular.map((c, i) => (
-                  <Link key={c.slug} to={`/distributors?category=${c.slug}`} style={{ ["--i" as string]: i }} className="anim-chip rounded-full border border-line-strong bg-white px-3.5 py-1.5 text-sm font-medium text-slate-700 shadow-sm transition-[border-color,color,background-color,transform] duration-200 hover:-translate-y-0.5 hover:border-primary/50 hover:bg-primary-soft hover:text-primary-dark">
+                  <Link key={c.slug} to={`/distributors?category=${c.slug}`} style={{ ["--i" as string]: i }} className="anim-chip shrink-0 whitespace-nowrap rounded-full border border-line bg-white/70 px-3.5 py-2 text-[13px] font-medium text-slate-700 sm:px-3 sm:py-1 transition-[border-color,color,background-color,transform] duration-200 hover:-translate-y-0.5 hover:border-primary/50 hover:bg-primary-soft hover:text-primary-dark">
                     {c.name}
                   </Link>
                 ))}
@@ -165,10 +158,20 @@ export function HomePage() {
       </section>
 
       {/* ---------------- Advertising: hero promotional banner ---------------- */}
-      <div className="container-page space-y-5 pb-12">
+      <div className="container-page space-y-4 pb-8 sm:space-y-5 sm:pb-12">
         <AdBanner placement="HOME_HERO_BANNER" fallback big />
         <AdSpotlight />
       </div>
+
+      {/* ---------------- Business & product showcase ---------------- */}
+      <Section>
+        <Head
+          eyebrow="BUSINESS SHOWCASE"
+          title="Businesses and their products, organised by industry."
+          text="Choose an industry to see company profiles and the products they publish."
+        />
+        <Showcase />
+      </Section>
 
       {/* ---------------- Latest opportunities ---------------- */}
       <Section>
@@ -183,9 +186,9 @@ export function HomePage() {
           }
         />
         {leadItems.length > 0 ? (
-          <ul className="mt-8 grid gap-5 md:grid-cols-2 lg:grid-cols-3">
+          <ul className="scrollbar-none relative -mx-4 flex snap-x snap-mandatory gap-3 overflow-x-auto scroll-px-4 px-4 pb-3 sm:mx-0 sm:grid sm:snap-none sm:grid-cols-2 sm:gap-4 sm:overflow-visible sm:px-0 sm:pb-0 mt-6 lg:grid-cols-3 lg:gap-5">
             {leadItems.map((r, i) => (
-              <RequirementCard key={r.id} r={r} index={i} />
+              <RequirementCard key={r.id} r={r} index={i} className="w-[86%] shrink-0 snap-start sm:w-auto" />
             ))}
           </ul>
         ) : (
@@ -196,52 +199,6 @@ export function HomePage() {
             </Link>
           </p>
         )}
-      </Section>
-
-      {/* ---------------- Business & product showcase ---------------- */}
-      <Section>
-        <Head
-          eyebrow="BUSINESS SHOWCASE"
-          title="Businesses and their products, organised by industry."
-          text="Choose an industry to see company profiles and the products they publish."
-        />
-        <Showcase />
-      </Section>
-
-      {/* ---------------- Industries ---------------- */}
-      {categories.length > 0 && (
-        <Section>
-          <Head eyebrow="EXPLORE INDUSTRIES" title="Find opportunities across every major industry." text="Browse distributors, products and brands by industry." />
-          <ul className="mt-8 grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-4">
-            {categories.map((c) => (
-              <li key={c.slug}>
-                <Link to={`/categories/${c.slug}`} className="group flex h-full items-center justify-between gap-3 rounded-xl border border-line bg-surface px-4 py-3.5 shadow-card transition-[box-shadow,transform,border-color] duration-200 hover:-translate-y-0.5 hover:border-primary/40 hover:shadow-card-hover">
-                  <span className="text-sm font-semibold text-ink">{c.name}</span>
-                  <span className="text-xs tabular-nums text-muted">{c.distributorCount}</span>
-                </Link>
-              </li>
-            ))}
-          </ul>
-          <div className="mt-8">
-            <Button asChild variant="secondary" size="lg">
-              <Link to="/categories">Browse All Industries</Link>
-            </Button>
-          </div>
-        </Section>
-      )}
-
-      {/* ---------------- How it works ---------------- */}
-      <Section>
-        <Head eyebrow="HOW SEARCH DISTRIBUTOR WORKS" title="From search to business connection." />
-        <ol className="mt-8 grid gap-5 sm:grid-cols-2 lg:grid-cols-4">
-          {STEPS.map((s) => (
-            <li key={s.n} className="rounded-card border border-line bg-surface p-6 shadow-card">
-              <span className="font-display text-3xl font-extrabold text-primary/30">{s.n}</span>
-              <h3 className="mt-3 text-lg">{s.title}</h3>
-              <p className="mt-1.5 text-sm leading-relaxed text-muted">{s.text}</p>
-            </li>
-          ))}
-        </ol>
       </Section>
 
       {/* ---------------- Why ---------------- */}

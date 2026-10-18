@@ -1,6 +1,6 @@
 import { useQuery } from "@tanstack/react-query";
 import { AnimatePresence, m } from "framer-motion";
-import { Building2, Loader2, MapPin, Search, Tag } from "lucide-react";
+import { Building2, ChevronDown, Loader2, MapPin, Search, Tag } from "lucide-react";
 import { useId, useMemo, useRef, useState, type FormEvent, type KeyboardEvent } from "react";
 import { useNavigate } from "react-router-dom";
 import type { CategoryDTO } from "@sd/shared";
@@ -95,7 +95,7 @@ function Combobox({
       <label htmlFor={`${listId}-input`} className="sr-only">
         {label}
       </label>
-      <Icon className={cn("pointer-events-none absolute left-4 top-1/2 h-5 w-5 -translate-y-1/2 text-slate-400", Icon === Loader2 && "animate-spin text-primary")} aria-hidden />
+      <Icon className={cn("pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400", Icon === Loader2 && "animate-spin text-primary")} aria-hidden />
       <input
         id={`${listId}-input`}
         role="combobox"
@@ -120,7 +120,7 @@ function Combobox({
           blurTimer.current = setTimeout(() => setOpen(false), 120);
         }}
         onKeyDown={onKeyDown}
-        className="h-14 w-full rounded-xl bg-transparent pl-12 pr-3 text-base text-ink placeholder:text-slate-400 focus:outline-none"
+        className="h-11 w-full rounded-xl bg-transparent pl-10 pr-3 text-base text-ink sm:h-10 sm:text-sm placeholder:text-slate-400 focus:outline-none"
       />
       <AnimatePresence>
         {expanded && (
@@ -209,11 +209,11 @@ export function SearchPanel({ keyword, location, onKeywordChange, onLocationChan
       role="search"
       aria-label="Search distributors"
       onSubmit={submit}
-      className={`relative grid gap-1 rounded-[20px] border border-line bg-white p-2 shadow-panel transition-[box-shadow,border-color] duration-300 focus-within:border-primary focus-within:shadow-[0_24px_60px_-18px_rgb(49_86_211/0.38),0_0_0_4px_rgb(49_86_211/0.1)] ${onCategoryChange ? "md:grid-cols-[1.6fr_1fr_1.05fr_auto]" : "md:grid-cols-[1.5fr_1fr_auto]"} md:items-center md:gap-0`}
+      className={`relative grid gap-1 rounded-2xl border border-line bg-white p-1.5 shadow-panel transition-[box-shadow,border-color] duration-300 focus-within:border-primary focus-within:shadow-[0_24px_60px_-18px_rgb(49_86_211/0.38),0_0_0_4px_rgb(49_86_211/0.1)] ${onCategoryChange ? "md:grid-cols-[minmax(0,1.5fr)_minmax(0,1fr)_minmax(0,1fr)_auto]" : "md:grid-cols-[1.5fr_1fr_auto]"} md:items-center md:gap-0`}
     >
       <Combobox
         label="Search by product, brand, company or keyword"
-        placeholder={placeholder ?? "Search by product, brand, company or keyword"}
+        placeholder={placeholder ?? "Product, brand or keyword"}
         icon={kwFetching ? Loader2 : Search}
         value={keyword}
         onChange={onKeywordChange}
@@ -239,7 +239,7 @@ export function SearchPanel({ keyword, location, onKeywordChange, onLocationChan
             id="hero-category"
             value={category ?? ""}
             onChange={(e) => onCategoryChange(e.target.value)}
-            className="h-14 w-full cursor-pointer appearance-none rounded-xl bg-transparent px-4 pr-8 text-base text-ink focus:outline-none"
+            className="h-11 w-full cursor-pointer appearance-none rounded-xl bg-transparent px-3 pr-8 text-base sm:h-10 sm:text-sm text-ink focus:outline-none"
           >
             <option value="">All Categories</option>
             {(catList ?? []).map((c) => (
@@ -248,10 +248,11 @@ export function SearchPanel({ keyword, location, onKeywordChange, onLocationChan
               </option>
             ))}
           </select>
+          <ChevronDown className="pointer-events-none absolute right-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" aria-hidden />
         </div>
       )}
-      <Button type="submit" size="lg" className="mt-1 h-14 rounded-xl px-7 md:mt-0 md:ml-2">
-        <Search className="h-5 w-5" aria-hidden />
+      <Button type="submit" size="lg" className="mt-1 h-11 rounded-xl px-5 text-base sm:h-10 sm:text-sm md:mt-0 md:ml-2">
+        <Search className="h-4 w-4" aria-hidden />
         Search
       </Button>
       {loading && <span aria-hidden className="search-sweep pointer-events-none absolute inset-x-6 bottom-0 h-0.5 overflow-hidden rounded-full" />}

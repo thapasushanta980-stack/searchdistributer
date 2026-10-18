@@ -29,13 +29,13 @@ export function Layout({ children }: { children: ReactNode }) {
 export function Breadcrumbs({ items }: { items: Array<{ name: string; to?: string }> }) {
   return (
     <nav aria-label="Breadcrumb" className="text-sm">
-      <ol className="flex flex-wrap items-center gap-1.5 text-muted">
+      <ol className="scrollbar-none relative -mx-4 flex items-center gap-1.5 overflow-x-auto whitespace-nowrap px-4 text-muted sm:mx-0 sm:flex-wrap sm:overflow-visible sm:px-0">
         {items.map((item, i) => {
           const last = i === items.length - 1;
           return (
-            <li key={item.name} className="flex items-center gap-1.5">
+            <li key={item.name} className="flex shrink-0 items-center gap-1.5">
               {item.to && !last ? (
-                <Link to={item.to} className="rounded transition-colors hover:text-primary">
+                <Link to={item.to} className="inline-flex min-h-11 items-center rounded transition-colors hover:text-primary sm:min-h-0">
                   {item.name}
                 </Link>
               ) : (

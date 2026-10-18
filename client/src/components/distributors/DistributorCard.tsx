@@ -30,7 +30,7 @@ export function DistributorCard({ d, view, index, animate, onEnquire }: Props) {
         transition={{ type: "spring", stiffness: 420, damping: 30 }}
         aria-labelledby={`dist-${d.id}`}
         className={cn(
-          "group/card flex h-full flex-col rounded-card border border-line bg-surface p-5 shadow-card transition-[box-shadow,border-color] duration-200 hover:border-line-strong hover:shadow-card-hover",
+          "group/card flex h-full flex-col rounded-card border border-line bg-surface p-4 shadow-card transition-[box-shadow,border-color] duration-200 sm:p-5 hover:border-line-strong hover:shadow-card-hover",
           list && "md:flex-row md:items-stretch md:gap-6",
         )}
       >
@@ -43,7 +43,7 @@ export function DistributorCard({ d, view, index, animate, onEnquire }: Props) {
             </div>
           </div>
 
-          <div className="mt-4 flex min-w-0 flex-1 flex-col">
+          <div className="mt-3 flex min-w-0 flex-1 flex-col sm:mt-4">
             <div className="flex flex-wrap items-center gap-x-2 gap-y-1">
               {d.category && (
                 <Link to={`/categories/${d.category.slug}`} className="text-xs font-semibold uppercase tracking-wide text-primary hover:underline">
@@ -58,15 +58,15 @@ export function DistributorCard({ d, view, index, animate, onEnquire }: Props) {
               {d.isDemo && <Badge className="py-px">Demo data</Badge>}
             </div>
 
-            <h3 id={`dist-${d.id}`} className="mt-1.5 text-lg">
+            <h3 id={`dist-${d.id}`} className="mt-1 text-base sm:mt-1.5 sm:text-lg">
               <Link to={`/distributors/${d.slug}`} className="rounded transition-colors hover:text-primary">
                 {d.name}
               </Link>
             </h3>
 
-            <p className="mt-2 line-clamp-3 text-sm leading-relaxed text-muted">{d.summary}</p>
+            <p className="mt-1.5 line-clamp-2 text-[13px] leading-relaxed text-muted sm:mt-2 sm:line-clamp-3 sm:text-sm">{d.summary}</p>
 
-            <dl className="mt-3.5 flex flex-wrap gap-x-4 gap-y-1.5 text-sm text-slate-600">
+            <dl className="mt-3 flex flex-wrap gap-x-4 gap-y-1 text-[13px] text-slate-600 sm:mt-3.5 sm:text-sm">
               <div className="flex items-center gap-1.5">
                 <dt className="sr-only">Location</dt>
                 <MapPin className="h-4 w-4 text-slate-400" aria-hidden />
@@ -80,7 +80,7 @@ export function DistributorCard({ d, view, index, animate, onEnquire }: Props) {
             </dl>
 
             {d.specialties.length > 0 && (
-              <ul className="mt-3.5 flex flex-wrap gap-1.5" aria-label="Specialties">
+              <ul className="mt-3.5 hidden flex-wrap gap-1.5 sm:flex" aria-label="Specialties">
                 {d.specialties.slice(0, 2).map((s) => (
                   <li key={s} className="rounded-md bg-slate-100 px-2 py-1 text-xs font-medium text-slate-700">
                     {s}
@@ -91,7 +91,7 @@ export function DistributorCard({ d, view, index, animate, onEnquire }: Props) {
           </div>
         </div>
 
-        <div className={cn("mt-5 flex flex-col gap-3", list && "md:mt-0 md:w-48 md:shrink-0 md:justify-between md:border-l md:border-line md:pl-6")}>
+        <div className={cn("mt-4 flex flex-col gap-3 sm:mt-5", list && "md:mt-0 md:w-48 md:shrink-0 md:justify-between md:border-l md:border-line md:pl-6")}>
           {list && (
             <div className="hidden items-center justify-end gap-1.5 md:flex">
               <VerificationBadge status={d.verificationStatus} />

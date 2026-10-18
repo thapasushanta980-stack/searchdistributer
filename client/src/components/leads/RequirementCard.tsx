@@ -4,21 +4,21 @@ import { Link } from "react-router-dom";
 import { REQUIREMENT_KIND_LABELS, type RequirementCardDTO } from "@sd/shared";
 import { Badge } from "@/components/ui/misc";
 import { Button } from "@/components/ui/button";
-import { formatInvestment } from "@/lib/utils";
+import { cn, formatInvestment } from "@/lib/utils";
 
 export function budgetLabel(r: Pick<RequirementCardDTO, "budgetMin" | "budgetMax" | "budgetCurrency">): string | null {
   return formatInvestment(r.budgetMin, r.budgetMax, r.budgetCurrency);
 }
 
 /** Compact lead card: the essentials only. Experience, warehouse and the full description live on the lead page. */
-export function RequirementCard({ r, index = 0, animate = false }: { r: RequirementCardDTO; index?: number; animate?: boolean }) {
+export function RequirementCard({ r, index = 0, animate = false, className }: { r: RequirementCardDTO; index?: number; animate?: boolean; className?: string }) {
   const budget = budgetLabel(r);
   return (
     <m.li
       initial={animate ? { opacity: 0, y: 16 } : false}
       animate={{ opacity: 1, y: 0 }}
       transition={{ duration: 0.45, delay: Math.min(index, 8) * 0.045, ease: [0.22, 1, 0.36, 1] }}
-      className="list-none"
+      className={cn("list-none", className)}
     >
       <m.article
         whileHover={{ y: -3 }}

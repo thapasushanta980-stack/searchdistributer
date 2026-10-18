@@ -1,4 +1,4 @@
-import { Menu } from "lucide-react";
+import { Menu, Search } from "lucide-react";
 import { useEffect, useState } from "react";
 import { Link, useLocation } from "react-router-dom";
 import { Button } from "@/components/ui/button";
@@ -15,9 +15,10 @@ export const NAV_ITEMS = [
   { label: "Pricing", to: "/pricing" },
 ] as const;
 
-const MOBILE_EXTRA = [
-  { label: "About", to: "/about" },
-  { label: "Contact", to: "/contact" },
+const MOBILE_GROUPS = [
+  { title: "Explore", items: NAV_ITEMS.slice(0, 5) },
+  { title: "Business", items: [NAV_ITEMS[5], { label: "Advertising", to: "/advertising" }, { label: "Post Requirement", to: "/post-requirement" }] },
+  { title: "Company", items: [{ label: "About", to: "/about" }, { label: "Contact", to: "/contact" }] },
 ] as const;
 
 export function LogoMark({ size = 32 }: { size?: number }) {
@@ -36,7 +37,7 @@ export function LogoMark({ size = 32 }: { size?: number }) {
 
 export function Logo({ light }: { light?: boolean }) {
   return (
-    <Link to="/" className="inline-flex items-center gap-2.5 rounded-lg" aria-label="Search Distributor home">
+    <Link to="/" className="inline-flex min-h-11 items-center gap-2.5 rounded-lg" aria-label="Search Distributor home">
       <LogoMark />
       <span className={cn("font-display text-[17px] font-extrabold tracking-tight", light ? "text-white" : "text-ink")}>
         Search <span className={light ? "text-indigo-300" : "text-primary"}>Distributor</span>
@@ -59,8 +60,8 @@ export function SiteHeader() {
   const isActive = (to: string) => (to.includes("?") ? current === to : pathname === to || (to !== "/" && pathname.startsWith(`${to}/`)));
 
   return (
-    <header className={cn("sticky top-0 z-40 border-b transition-[background-color,border-color,box-shadow] duration-300", scrolled ? "border-line bg-white/80 backdrop-blur-md" : "border-transparent bg-background/70")}>
-      <div className={cn("container-page flex items-center justify-between gap-4 transition-[height] duration-300", scrolled ? "h-14" : "h-16")}>
+    <header className={cn("sticky top-0 z-40 border-b transition-[background-color,border-color,box-shadow] duration-300", scrolled ? "border-line bg-white/95 backdrop-blur-md sm:bg-white/80" : "border-transparent bg-background/95 sm:bg-background/70")}>
+      <div className={cn("container-page flex items-center justify-between gap-4 transition-[height] duration-300", "h-14", !scrolled && "sm:h-16")}>
         <Logo />
 
         <nav aria-label="Primary" className="hidden items-center gap-0.5 xl:flex">
@@ -92,23 +93,35 @@ export function SiteHeader() {
           </Button>
         </div>
 
-        <Button variant="secondary" size="icon" className="xl:hidden" aria-label="Open menu" onClick={() => setOpen(true)}>
-          <Menu className="h-5 w-5" aria-hidden />
-        </Button>
+        <div className="flex items-center gap-2 xl:hidden">
+          <Button asChild variant="ghost" size="icon" className="sm:hidden" aria-label="Search distributors">
+            <Link to="/distributors">
+              <Search className="h-5 w-5" aria-hidden />
+            </Link>
+          </Button>
+          <Button variant="secondary" size="icon" aria-label="Open menu" onClick={() => setOpen(true)}>
+            <Menu className="h-5 w-5" aria-hidden />
+          </Button>
+        </div>
       </div>
 
       <OverlayDialog open={open} onOpenChange={setOpen} title="Menu" variant="sheet">
-        <nav aria-label="Mobile" className="flex flex-1 flex-col gap-1 overflow-y-auto p-4">
-          {[...NAV_ITEMS, ...MOBILE_EXTRA].map((item) => (
-            <Link
-              key={item.to}
-              to={item.to}
-              onClick={() => setOpen(false)}
-              aria-current={isActive(item.to) ? "page" : undefined}
-              className={cn("rounded-xl px-4 py-3 text-base font-medium text-ink hover:bg-slate-100", isActive(item.to) && "bg-primary-soft text-primary-dark")}
-            >
-              {item.label}
-            </Link>
+        <nav aria-label="Mobile" className="flex flex-1 flex-col overflow-y-auto p-4 pb-[max(1rem,env(safe-area-inset-bottom))]">
+          {MOBILE_GROUPS.map((g) => (
+            <div key={g.title} className="mb-3">
+              <p className="px-4 pb-1 text-xs font-semibold uppercase tracking-wider text-muted">{g.title}</p>
+              {g.items.map((item) => (
+                <Link
+                  key={item.to}
+                  to={item.to}
+                  onClick={() => setOpen(false)}
+                  aria-current={isActive(item.to) ? "page" : undefined}
+                  className={cn("flex min-h-12 items-center rounded-xl px-4 text-base font-medium text-ink hover:bg-slate-100", isActive(item.to) && "bg-primary-soft text-primary-dark")}
+                >
+                  {item.label}
+                </Link>
+              ))}
+            </div>
           ))}
           <div className="mt-auto flex flex-col gap-2 border-t border-line pt-4">
             <Button asChild variant="secondary" size="lg">

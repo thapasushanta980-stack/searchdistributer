@@ -48,7 +48,7 @@ export function FavoriteButton({ id, name }: { id: string; name: string }) {
       aria-label={active ? `Remove ${name} from saved` : `Save ${name}`}
       onClick={() => toggle(id)}
       whileTap={{ scale: 0.82 }}
-      className="flex h-9 w-9 items-center justify-center rounded-full text-slate-400 transition-colors hover:bg-rose-50 hover:text-rose-500 aria-pressed:text-rose-500"
+      className="flex h-11 w-11 items-center justify-center rounded-full text-slate-400 sm:h-9 sm:w-9 transition-colors hover:bg-rose-50 hover:text-rose-500 aria-pressed:text-rose-500"
     >
       <m.span key={String(active)} initial={active ? { scale: 0.5 } : false} animate={{ scale: 1 }} transition={{ type: "spring", stiffness: 600, damping: 12 }} className="flex">
         <Heart className="h-[18px] w-[18px]" fill={active ? "currentColor" : "none"} aria-hidden />

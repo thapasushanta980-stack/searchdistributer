@@ -113,7 +113,7 @@ export function DistributorsPage() {
         sub="Discover businesses, distributors and market partners by product, category and location. Explore verified profiles and connect directly."
         top={<Breadcrumbs items={[{ name: "Home", to: "/" }, { name: "Find Distributors" }]} />}
       >
-        <div className="anim-pop relative z-20 mx-auto mt-9 max-w-[960px]">
+        <div className="anim-pop relative z-20 mx-auto mt-6 max-w-[960px] sm:mt-9">
           <SearchPanel keyword={kw} location={loc} onKeywordChange={setKw} onLocationChange={setLoc} onSubmit={submit} onPickCategory={pickCategory} loading={fetching} />
         </div>
         <PopularChips categories={categories} />
