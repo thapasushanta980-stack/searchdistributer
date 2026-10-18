@@ -281,7 +281,7 @@ const HERO_NODES: Array<{ label: string; icon: LucideIcon; x: number; y: number 
  */
 export function HeroNetwork() {
   return (
-    <div className="relative mx-auto aspect-square w-full max-w-[440px]" role="img" aria-label="Search Distributor connects brands, products, distributors and markets.">
+    <div className="relative mx-auto aspect-square w-full max-w-[320px] sm:max-w-[440px]" role="img" aria-label="Search Distributor connects brands, products, distributors and markets.">
       <svg viewBox="0 0 100 100" className="absolute inset-0 h-full w-full" aria-hidden>
         {HERO_NODES.map((n) => (
           <line key={n.label} x1="50" y1="50" x2={n.x} y2={n.y} stroke="#3156D3" strokeOpacity="0.45" strokeWidth="0.45" className="dash-flow" />
@@ -292,7 +292,7 @@ export function HeroNetwork() {
 
       {/* Hub */}
       <div className="absolute left-1/2 top-1/2 flex -translate-x-1/2 -translate-y-1/2 flex-col items-center">
-        <LogoMark size={44} />
+        <LogoMark size={40} />
       </div>
       <p className="absolute left-1/2 top-[65%] -translate-x-1/2 whitespace-nowrap font-display text-[13px] font-bold text-ink">Search Distributor</p>
 
@@ -304,12 +304,12 @@ export function HeroNetwork() {
           animate={{ opacity: 1, scale: 1 }}
           transition={{ duration: 0.5, delay: 0.3 + i * 0.1, ease: [0.22, 1, 0.36, 1] }}
           style={{ left: `${n.x}%`, top: `${n.y}%` }}
-          className="absolute flex w-[40%] -translate-x-1/2 -translate-y-1/2 items-center gap-2.5 rounded-2xl border border-line bg-white px-3 py-2.5 shadow-card-hover"
+          className="absolute flex w-[44%] -translate-x-1/2 -translate-y-1/2 items-center gap-1.5 rounded-xl border border-line bg-white px-2 py-1.5 shadow-card-hover sm:w-[40%] sm:gap-2.5 sm:rounded-2xl sm:px-3 sm:py-2.5"
         >
-          <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-primary-soft text-primary">
-            <n.icon className="h-[18px] w-[18px]" aria-hidden />
+          <span className="flex h-7 w-7 shrink-0 items-center justify-center rounded-lg bg-primary-soft text-primary sm:h-9 sm:w-9 sm:rounded-xl">
+            <n.icon className="h-4 w-4 sm:h-[18px] sm:w-[18px]" aria-hidden />
           </span>
-          <span className="truncate font-display text-sm font-bold text-ink">{n.label}</span>
+          <span className="font-display text-[13px] font-bold text-ink sm:truncate sm:text-sm">{n.label}</span>
         </m.div>
       ))}
 

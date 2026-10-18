@@ -151,7 +151,7 @@ export function HomePage() {
               </div>
             )}
           </div>
-          <div className="hidden lg:block">
+          <div className="mt-2 lg:mt-0">
             <HeroNetwork />
           </div>
         </div>
