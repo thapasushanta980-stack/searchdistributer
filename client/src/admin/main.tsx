@@ -1,6 +1,8 @@
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { createRoot } from "react-dom/client";
 import { BrowserRouter } from "react-router-dom";
+import { ErrorBoundary } from "@/components/ui/error-boundary";
+import { TopProgress } from "@/components/ui/top-progress";
 import { AdminApp } from "./AdminApp";
 import { AdminApiError } from "./api";
 import "../index.css";
@@ -20,7 +22,10 @@ const queryClient = new QueryClient({
 createRoot(document.getElementById("root")!).render(
   <QueryClientProvider client={queryClient}>
     <BrowserRouter basename="/admin">
-      <AdminApp />
+      <TopProgress />
+      <ErrorBoundary homeHref="/admin">
+        <AdminApp />
+      </ErrorBoundary>
     </BrowserRouter>
   </QueryClientProvider>,
 );

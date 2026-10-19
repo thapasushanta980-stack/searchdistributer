@@ -182,6 +182,44 @@
   animation-delay: calc(300ms + var(--i, 0) * 60ms);
 }
 
+/* Global loading bar (TopProgress): creeps toward 85% while loading, then completes and fades. */
+.top-progress {
+  position: fixed;
+  inset: 0 0 auto 0;
+  z-index: 100;
+  height: 3px;
+  pointer-events: none;
+}
+.top-progress-bar {
+  height: 100%;
+  width: 100%;
+  transform-origin: left;
+  background: linear-gradient(90deg, var(--color-primary), #6d5dfb);
+  box-shadow: 0 0 8px color-mix(in srgb, var(--color-primary) 55%, transparent);
+}
+.top-progress[data-phase="loading"] .top-progress-bar {
+  animation: progress-creep 8s cubic-bezier(0.1, 0.6, 0.2, 1) forwards;
+}
+.top-progress[data-phase="done"] .top-progress-bar {
+  transform: scaleX(1);
+  opacity: 0;
+  transition: transform 200ms ease-out, opacity 300ms ease 150ms;
+}
+@keyframes progress-creep {
+  from {
+    transform: scaleX(0.08);
+  }
+  to {
+    transform: scaleX(0.85);
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .top-progress[data-phase="loading"] .top-progress-bar {
+    animation: none;
+    transform: scaleX(0.6);
+  }
+}
+
 @keyframes dash-flow {
   to {
     stroke-dashoffset: -28;

@@ -59,5 +59,5 @@ export async function listAudit(page: number, limit = 50): Promise<{ data: Admin
     prisma.auditLog.findMany({ include: { admin: { select: { name: true, email: true } } }, orderBy: { createdAt: "desc" }, skip: (page - 1) * limit, take: limit }),
     prisma.auditLog.count(),
   ]);
-  return { total, data: rows.map((r) => ({ id: r.id, action: r.action, entityType: r.entityType, entityId: r.entityId, meta: r.meta, admin: r.admin, createdAt: r.createdAt.toISOString() })) };
+  return { total, data: rows.map((r) => ({ id: r.id, action: r.action, entityType: r.entityType, entityId: r.entityId, meta: r.meta, admin: r.admin, ip: r.ip, createdAt: r.createdAt.toISOString() })) };
 }

@@ -94,7 +94,8 @@ export function DistributorsPage() {
     title: params.keyword ? `${params.keyword} distributors | Search Distributors` : params.page > 1 ? `Search Distributors – Page ${params.page} | Find Trusted Business Partners` : TITLE,
     description: params.page > 1 && !refined ? `${DESCRIPTION} Page ${params.page}.` : DESCRIPTION,
     canonical: onlyCategory ? abs(site, `/categories/${onlyCategory}`) : refined ? abs(site, "/distributors") : paginationCanonical(site, "/distributors", params.page),
-    robots: refined ? "noindex,follow" : "index,follow",
+    // An empty listing is a thin page: keep it out of the index until it has results.
+    robots: refined || (list && list.data.length === 0) ? "noindex,follow" : "index,follow",
     jsonLd: [
       breadcrumbLd(site, crumbs),
       ...(!refined && list ? [itemListLd(site, "Distributors", list.data, (list.pagination.page - 1) * list.pagination.limit)] : []),
@@ -108,8 +109,8 @@ export function DistributorsPage() {
       <PageHead spec={spec} site={site} />
       <HeroShell
         eyebrow="DISTRIBUTOR NETWORK"
-        headline="Find the right distributor."
-        highlight="Grow into new markets."
+        headline="Search distributors"
+        highlight="by product, category and location."
         sub="Discover businesses, distributors and market partners by product, category and location. Explore verified profiles and connect directly."
         top={<Breadcrumbs items={[{ name: "Home", to: "/" }, { name: "Find Distributors" }]} />}
       >

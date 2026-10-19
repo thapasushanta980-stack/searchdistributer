@@ -50,6 +50,7 @@ export function ResultsSection({ lockedCategory, lockedBusinessType, basePath, s
   );
 
   const results = useQuery(distributorsQuery(api, effective));
+  const noun = lockedBusinessType === "MANUFACTURER" ? { one: "brand", many: "brands" } : { one: "distributor", many: "distributors" };
   const { data: categories = [] } = useQuery(categoriesQuery(api));
   const { data: facets } = useQuery(facetsQuery(api));
   const { data: featured = [] } = useQuery(featuredQuery(api));
@@ -113,10 +114,10 @@ export function ResultsSection({ lockedCategory, lockedBusinessType, basePath, s
             <p aria-live="polite" className="mr-auto text-sm text-slate-600">
               {data ? (
                 <>
-                  Showing <strong className="tabular-nums text-ink">{total.toLocaleString("en")}</strong> {total === 1 ? "distributor" : "distributors"}
+                  Showing <strong className="tabular-nums text-ink">{total.toLocaleString("en")}</strong> {total === 1 ? noun.one : noun.many}
                 </>
               ) : (
-                "Loading distributors…"
+                `Loading ${noun.many}…`
               )}
               {results.isFetching && data && <span className="ml-2 text-xs text-primary">Updating…</span>}
             </p>
@@ -141,7 +142,7 @@ export function ResultsSection({ lockedCategory, lockedBusinessType, basePath, s
           </div>
 
           {results.isPending ? (
-            <ul aria-busy="true" aria-label="Loading distributors" className={cn("grid gap-5", view === "grid" ? "sm:grid-cols-2 xl:grid-cols-3" : "grid-cols-1")}>
+            <ul aria-busy="true" aria-label={`Loading ${noun.many}`} className={cn("grid gap-5", view === "grid" ? "sm:grid-cols-2 xl:grid-cols-3" : "grid-cols-1")}>
               {Array.from({ length: 6 }, (_, i) => (
                 <DistributorCardSkeleton key={i} view={view} />
               ))}
@@ -149,7 +150,7 @@ export function ResultsSection({ lockedCategory, lockedBusinessType, basePath, s
           ) : results.isError && !data ? (
             <ErrorState offline={!online} onRetry={() => results.refetch()} message={results.error instanceof Error ? results.error.message : undefined} />
           ) : data && data.data.length === 0 ? (
-            <EmptyState onClear={clear} canClear={canClear || params.page > 1} />
+            <EmptyState onClear={clear} canClear={canClear || params.page > 1} noun={noun.many} />
           ) : data ? (
             <m.div key={searchToQueryString(effective)} initial={false} animate={{ opacity: results.isPlaceholderData ? 0.55 : 1 }} transition={{ duration: 0.15 }} aria-busy={results.isFetching}>
                 <ul className={cn("grid gap-5", view === "grid" ? "sm:grid-cols-2 xl:grid-cols-3" : "grid-cols-1")}>

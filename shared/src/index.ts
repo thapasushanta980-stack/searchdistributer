@@ -663,5 +663,6 @@ export interface AdminAuditDTO {
   entityId: string | null;
   meta: unknown;
   admin: { name: string; email: string } | null;
+  ip: string | null;
   createdAt: string;
 }

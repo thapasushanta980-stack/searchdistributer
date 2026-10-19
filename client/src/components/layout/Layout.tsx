@@ -1,6 +1,7 @@
 import { ArrowLeft, ChevronRight, WifiOff } from "lucide-react";
 import type { ReactNode } from "react";
 import { Link, useNavigate } from "react-router-dom";
+import { TopProgress } from "@/components/ui/top-progress";
 import { useOnlineStatus } from "@/lib/utils";
 import { SiteFooter } from "./SiteFooter";
 import { SiteHeader } from "./SiteHeader";
@@ -9,6 +10,7 @@ export function Layout({ children }: { children: ReactNode }) {
   const online = useOnlineStatus();
   return (
     <div className="flex min-h-dvh flex-col">
+      <TopProgress />
       <a href="#main" className="skip-link">
         Skip to main content
       </a>

@@ -37,6 +37,11 @@ interface RenderResult {
 }
 type RenderFn = (opts: { url: string; api: ApiClient; site: SiteConfigDTO }) => Promise<RenderResult>;
 
+const escapeHtml = (s: string) => s.replace(/[&<>"]/g, (c) => `&#${c.charCodeAt(0)};`);
+/** JSON that is safe inside a <script> element (mirrors safeJson in client/src/seo/head.tsx). */
+const scriptJson = (value: unknown) =>
+  JSON.stringify(value).replace(/</g, "\\u003c").replace(/>/g, "\\u003e").replace(/&/g, "\\u0026").replace(/\u2028/g, "\\u2028").replace(/\u2029/g, "\\u2029");
+
 const clientDir = path.join(config.rootDir, "client");
 const distClient = path.join(clientDir, "dist/client");
 const distServer = path.join(clientDir, "dist/server");
@@ -105,9 +110,16 @@ export async function mountSsr(app: Express): Promise<void> {
       try {
         result = await render({ url, api: serverApi, site: siteConfig });
       } catch (err) {
-        // Degrade to a client-rendered shell instead of failing the request.
+        // Degrade to a client-rendered shell instead of failing the request. The browser still renders the page from
+        // the site config below; crawlers get 503 + Retry-After so they come back instead of indexing an empty shell.
         logger.error(`SSR failed for ${url}: ${(err as Error)?.stack ?? err}`);
-        result = { html: "", head: "<title>Search Distributor</title>", state: "{}", status: 200 };
+        result = {
+          html: "",
+          head: `<title>${escapeHtml(siteConfig.siteName)}</title>\n    <meta name="robots" content="noindex">`,
+          state: `<script type="application/json" id="__SD_STATE__">${scriptJson({ site: siteConfig })}</script>`,
+          status: 503,
+        };
+        res.setHeader("Retry-After", "120");
       }
 
       if (result.redirect) return res.redirect(301, result.redirect);

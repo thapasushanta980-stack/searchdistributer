@@ -5,6 +5,7 @@ import type { CategoryDTO, HeadSpec } from "@sd/shared";
 import { Breadcrumbs } from "@/components/layout/Layout";
 import { CtaSection } from "@/components/distributors/Hero";
 import { ResultsSection } from "@/components/distributors/ResultsSection";
+import { Skeleton } from "@/components/ui/misc";
 import { useApi, useSite } from "@/lib/context";
 import { categoriesQuery, distributorsQuery } from "@/lib/queries";
 import { useSearchState } from "@/lib/useSearchState";
@@ -96,7 +97,15 @@ export function CategoryPage() {
   const { data: list } = useQuery({ ...distributorsQuery(api, { ...params, category: [slug] }), enabled: !!found });
 
   if (!found) {
-    if (isPending) return <div className="container-page py-20" aria-busy="true" />;
+    if (isPending)
+      return (
+        <div className="container-page py-12" aria-busy="true">
+          <Skeleton className="h-4 w-48" />
+          <Skeleton className="mt-6 h-10 w-2/3" />
+          <Skeleton className="mt-3 h-5 w-1/2" />
+          <Skeleton className="mt-10 h-64 w-full rounded-card" />
+        </div>
+      );
     return <NotFoundPage />;
   }
   const { category, parent } = found;

@@ -27,12 +27,14 @@ function EmptyIllustration() {
   );
 }
 
-export function EmptyState({ onClear, canClear }: { onClear: () => void; canClear: boolean }) {
+export function EmptyState({ onClear, canClear, noun = "distributors" }: { onClear: () => void; canClear: boolean; noun?: string }) {
   return (
     <div role="status" className="rounded-card border border-dashed border-line-strong bg-surface px-6 py-14 text-center">
       <EmptyIllustration />
-      <h3 className="mt-6 text-xl">No distributors found</h3>
-      <p className="mx-auto mt-2 max-w-md text-sm text-muted">Try a broader search, another location or remove some filters.</p>
+      <h3 className="mt-6 text-xl">No {noun} found</h3>
+      <p className="mx-auto mt-2 max-w-md text-sm text-muted">
+        {canClear ? "Try a broader search, another location or remove some filters." : `New ${noun} are added as they join. Meanwhile, tell businesses what you are looking for.`}
+      </p>
       <div className="mt-6 flex flex-wrap justify-center gap-3">
         {canClear && <Button onClick={onClear}>Clear Filters</Button>}
         <Button asChild variant="secondary">

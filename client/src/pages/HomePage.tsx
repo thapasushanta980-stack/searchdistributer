@@ -103,7 +103,7 @@ export function HomePage() {
         <div className="mx-auto grid max-w-[1320px] grid-cols-[minmax(0,1fr)] items-center gap-10 px-4 pb-12 pt-8 sm:px-6 lg:grid-cols-[1.4fr_0.6fr] lg:gap-4 lg:pb-16 lg:pt-12">
           <div className="min-w-0">
             <p className="anim-rise hidden items-center gap-2 rounded-full bg-primary-soft px-3 py-1 text-xs font-bold uppercase tracking-[0.16em] text-primary-dark sm:inline-flex"><span className="h-1.5 w-1.5 rounded-full bg-primary" aria-hidden />The B2B Distribution Network</p>
-            <h1 className="anim-rise mt-4 hidden sm:block text-[2rem] leading-[1.1] tracking-tight sm:text-4xl lg:text-[2.6rem]" style={{ animationDelay: "60ms" }}>
+            <h1 className="anim-rise sr-only sm:not-sr-only sm:mt-4 sm:block text-[2rem] leading-[1.1] tracking-tight sm:text-4xl lg:text-[2.6rem]" style={{ animationDelay: "60ms" }}>
               Find the right distributor.
               <br />
               <span className="text-primary">Grow into new markets.</span>

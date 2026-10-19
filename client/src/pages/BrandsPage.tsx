@@ -1,11 +1,12 @@
-import { useIsFetching } from "@tanstack/react-query";
+import { useIsFetching, useQuery } from "@tanstack/react-query";
 import { useCallback, useEffect, useState } from "react";
 import type { HeadSpec } from "@sd/shared";
 import { CtaBand } from "@/components/home/blocks";
 import { ResultsSection } from "@/components/distributors/ResultsSection";
 import { SearchPanel } from "@/components/distributors/SearchPanel";
 import { Breadcrumbs } from "@/components/layout/Layout";
-import { useSite } from "@/lib/context";
+import { useApi, useSite } from "@/lib/context";
+import { distributorsQuery } from "@/lib/queries";
 import { useSearchState } from "@/lib/useSearchState";
 import { useDebouncedValue } from "@/lib/utils";
 import { PageHead } from "@/seo/head";
@@ -13,7 +14,10 @@ import { abs, breadcrumbLd, hasRefinement, paginationCanonical } from "@/seo/bui
 
 export function BrandsPage() {
   const site = useSite();
+  const api = useApi();
   const { params, update } = useSearchState();
+  // Same query (and cache entry) as the ResultsSection below, so this adds no request.
+  const { data: list } = useQuery(distributorsQuery(api, { ...params, businessType: ["MANUFACTURER"] }));
   const fetching = useIsFetching({ queryKey: ["distributors", "list"] }) > 0;
 
   const [kw, setKw] = useState(params.keyword ?? "");
@@ -47,7 +51,7 @@ export function BrandsPage() {
     title: `Discover Brands${params.page > 1 ? ` – Page ${params.page}` : ""} | Search Distributors`,
     description: "Explore brands and manufacturers looking to grow their distribution network. Review company profiles, products and distribution areas.",
     canonical: refined ? abs(site, "/brands") : paginationCanonical(site, "/brands", params.page),
-    robots: refined ? "noindex,follow" : "index,follow",
+    robots: refined || (list && list.data.length === 0) ? "noindex,follow" : "index,follow",
     jsonLd: [
       breadcrumbLd(site, [
         { name: "Home", path: "/" },

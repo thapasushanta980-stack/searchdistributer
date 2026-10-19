@@ -50,7 +50,7 @@ export function LeadsPage() {
     title: `Distributor Leads${params.page > 1 ? ` – Page ${params.page}` : ""} | Search Distributors`,
     description: "Browse current distributor requirements by product, location, budget and business experience, and send an enquiry to the business.",
     canonical: refined ? abs(site, "/leads") : paginationCanonical(site, "/leads", params.page),
-    robots: refined ? "noindex,follow" : "index,follow",
+    robots: refined || (data && data.data.length === 0) ? "noindex,follow" : "index,follow",
     jsonLd: [breadcrumbLd(site, crumbs)],
   };
 
