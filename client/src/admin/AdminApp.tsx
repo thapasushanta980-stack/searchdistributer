@@ -1,12 +1,18 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { ClipboardList, LayoutDashboard, LogOut, ShieldCheck } from "lucide-react";
+import { Building2, ClipboardList, History, Inbox, LayoutDashboard, LogOut, Mail, Megaphone, ShieldCheck } from "lucide-react";
 import { useState, type FormEvent } from "react";
 import { NavLink, Navigate, Route, Routes } from "react-router-dom";
 import type { AdminMeDTO } from "@sd/shared";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 import { AdminApiError, ME_KEY, adminApi } from "./api";
+import { ActivityPage } from "./ActivityPage";
+import { AdEditPage, AdsPage } from "./AdsPage";
 import { DashboardPage } from "./DashboardPage";
+import { EnquiriesPage } from "./EnquiriesPage";
+import { LeadsPage } from "./LeadsPage";
+import { ListingEditPage } from "./ListingEditPage";
+import { ListingsPage } from "./ListingsPage";
 import { RequirementsPage } from "./RequirementsPage";
 
 export function AdminApp() {
@@ -74,7 +80,12 @@ function LoginPage() {
 
 const nav = [
   { to: "/", label: "Dashboard", icon: LayoutDashboard, end: true },
+  { to: "/leads", label: "Leads", icon: Inbox, end: false },
+  { to: "/enquiries", label: "Enquiries", icon: Mail, end: false },
   { to: "/requirements", label: "Requirements", icon: ClipboardList, end: false },
+  { to: "/listings", label: "Listings", icon: Building2, end: false },
+  { to: "/ads", label: "Advertising", icon: Megaphone, end: false },
+  { to: "/activity", label: "Activity", icon: History, end: false, superOnly: true },
 ];
 
 function Shell({ admin }: { admin: AdminMeDTO }) {
@@ -97,7 +108,7 @@ function Shell({ admin }: { admin: AdminMeDTO }) {
           <span className="font-display text-base font-bold text-ink">Admin</span>
         </div>
         <nav aria-label="Admin" className="scrollbar-none relative flex gap-1 overflow-x-auto px-3 pb-2 md:flex-col md:overflow-visible md:pb-0">
-          {nav.map(({ to, label, icon: Icon, end }) => (
+          {nav.filter((n) => !n.superOnly || admin.role === "SUPER_ADMIN").map(({ to, label, icon: Icon, end }) => (
             <NavLink
               key={to}
               to={to}
@@ -125,7 +136,14 @@ function Shell({ admin }: { admin: AdminMeDTO }) {
         <main className="mx-auto max-w-5xl px-4 py-5 sm:px-5 sm:py-8">
           <Routes>
             <Route index element={<DashboardPage />} />
+            <Route path="leads" element={<LeadsPage />} />
+            <Route path="enquiries" element={<EnquiriesPage />} />
             <Route path="requirements" element={<RequirementsPage />} />
+            <Route path="listings" element={<ListingsPage />} />
+            <Route path="listings/:id" element={<ListingEditPage />} />
+            <Route path="ads" element={<AdsPage />} />
+            <Route path="ads/:id" element={<AdEditPage />} />
+            {admin.role === "SUPER_ADMIN" && <Route path="activity" element={<ActivityPage />} />}
             <Route path="*" element={<Navigate to="/" replace />} />
           </Routes>
         </main>

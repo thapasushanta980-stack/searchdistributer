@@ -1,11 +1,12 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { Check, X } from "lucide-react";
+import { Check, ExternalLink, Lock, MessageSquare, RotateCcw, X } from "lucide-react";
 import { useState } from "react";
 import { useSearchParams } from "react-router-dom";
 import { REQUIREMENT_KIND_LABELS, type AdminRequirementDTO } from "@sd/shared";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 import { AdminApiError, ME_KEY, adminApi, type RequirementStatus } from "./api";
+import { DeleteButton, ErrorLine, fmtDateTime, useAdminMutation, useIsSuperAdmin } from "./ui";
 
 const TABS: Array<{ value: RequirementStatus; label: string }> = [
   { value: "PENDING_REVIEW", label: "Pending" },
@@ -157,6 +158,69 @@ function RequirementItem({ item }: { item: AdminRequirementDTO }) {
           {error}
         </p>
       )}
+      <AfterDecision item={item} />
     </li>
+  );
+}
+
+const LIST_KEY = ["admin", "requirements"];
+
+/** Close, reopen, view, delete and read responses: everything after the approve/reject decision. */
+function AfterDecision({ item }: { item: AdminRequirementDTO }) {
+  const superAdmin = useIsSuperAdmin();
+  const [showResponses, setShowResponses] = useState(false);
+  const status = useAdminMutation((next: "APPROVED" | "CLOSED") => adminApi.setRequirementStatus(item.id, next), [LIST_KEY]);
+  const remove = useAdminMutation(() => adminApi.deleteRequirement(item.id), [LIST_KEY]);
+  const responses = useQuery({ queryKey: ["admin", "requirement-responses", item.id], queryFn: () => adminApi.requirementResponses(item.id), enabled: showResponses });
+
+  return (
+    <>
+      <div className="mt-3 flex flex-wrap items-center gap-2 border-t border-line pt-3">
+        {item.status === "APPROVED" && (
+          <>
+            <Button size="sm" variant="ghost" asChild>
+              <a href={`/leads/${item.slug}`} target="_blank" rel="noreferrer">
+                <ExternalLink className="h-4 w-4" aria-hidden /> View on site
+              </a>
+            </Button>
+            <Button size="sm" variant="secondary" onClick={() => status.mutate("CLOSED")} disabled={status.isPending}>
+              <Lock className="h-4 w-4" aria-hidden /> Close
+            </Button>
+          </>
+        )}
+        {item.status === "CLOSED" && (
+          <Button size="sm" variant="secondary" onClick={() => status.mutate("APPROVED")} disabled={status.isPending}>
+            <RotateCcw className="h-4 w-4" aria-hidden /> Reopen
+          </Button>
+        )}
+        <Button size="sm" variant="ghost" onClick={() => setShowResponses((v) => !v)} aria-expanded={showResponses} disabled={item.responseCount === 0}>
+          <MessageSquare className="h-4 w-4" aria-hidden /> {item.responseCount} {item.responseCount === 1 ? "response" : "responses"}
+        </Button>
+        {superAdmin && (
+          <span className="ml-auto">
+            <DeleteButton what="this requirement and its responses" pending={remove.isPending} onConfirm={() => remove.mutate(undefined)} />
+          </span>
+        )}
+      </div>
+      <ErrorLine error={status.error ?? remove.error} />
+      {showResponses && (
+        <ul className="mt-3 space-y-2">
+          {responses.isLoading && <li className="text-sm text-muted">Loading responses…</li>}
+          {responses.data?.map((r) => (
+            <li key={r.id} className="rounded-input border border-line bg-background p-3 text-sm">
+              <div className="flex flex-wrap gap-x-3 text-xs text-muted">
+                <span className="font-mono">{r.reference}</span>
+                <span>{fmtDateTime(r.createdAt)}</span>
+              </div>
+              <p className="mt-1 font-medium text-ink">
+                {r.senderName} · <a href={`mailto:${r.senderEmail}`} className="text-primary hover:underline">{r.senderEmail}</a>
+                {r.senderPhone ? ` · ${r.senderPhone}` : ""} · {r.senderLocation}
+              </p>
+              <p className="mt-1 whitespace-pre-wrap text-body">{r.message}</p>
+            </li>
+          ))}
+        </ul>
+      )}
+    </>
   );
 }

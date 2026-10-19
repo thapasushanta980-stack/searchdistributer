@@ -60,6 +60,13 @@ enum EnquiryStatus {
   CLOSED
 }
 
+enum LeadStatus {
+  NEW
+  CONTACTED
+  CONVERTED
+  CLOSED
+}
+
 enum LeadType {
   BUSINESS_REGISTRATION
   REQUIREMENT
@@ -288,8 +295,14 @@ model Lead {
   message        String
   consentAt      DateTime
   createdAt      DateTime @default(now())
+  /// Worked by admins in the inbox. CONVERTED means a listing was created from it.
+  status         LeadStatus @default(NEW)
+  /// Private admin notes. Never shown publicly.
+  notes          String?
+  updatedAt      DateTime @default(now()) @updatedAt
 
   @@index([type, createdAt])
+  @@index([status, createdAt])
   @@map("leads")
 }
 

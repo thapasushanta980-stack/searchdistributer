@@ -630,6 +630,10 @@ export interface AdminMeDTO {
 }
 
 export interface AdminStatsDTO {
+  leadsNew: number;
+  enquiriesNew: number;
+  adsLive: number;
+  listingsLive: number;
   requirementsPending: number;
   listingsPending: number;
   productsPending: number;
@@ -653,6 +657,7 @@ export interface AdminRequirementDTO {
   contactEmail: string;
   contactPhone: string;
   companyName: string | null;
+  responseCount: number;
   createdAt: string;
 }
 
@@ -665,4 +670,293 @@ export interface AdminAuditDTO {
   admin: { name: string; email: string } | null;
   ip: string | null;
   createdAt: string;
+}
+
+/* ------------------------------------------------------------------ */
+/* Admin modules: inbox, enquiries, listings, products, advertising    */
+/* ------------------------------------------------------------------ */
+
+export const ADMIN_PAGE_SIZE = 20;
+
+const optText = (max: number) =>
+  z
+    .string()
+    .trim()
+    .max(max)
+    .optional()
+    .nullable()
+    .transform((v) => (v ? v : null));
+
+const httpsUrl = z
+  .string()
+  .trim()
+  .max(500)
+  .url("Enter a full link starting with https://")
+  .refine((v) => /^https:\/\//i.test(v), "Use a secure https:// link");
+
+const optHttpsUrl = z
+  .union([httpsUrl, z.literal(""), z.null()])
+  .optional()
+  .transform((v) => (v ? v : null));
+
+const isoDate = z.string().datetime({ offset: true, message: "Enter a valid date" });
+
+/** Leads: the contact and registration form inbox. */
+export const LEAD_STATUSES = ["NEW", "CONTACTED", "CONVERTED", "CLOSED"] as const;
+export type LeadStatus = (typeof LEAD_STATUSES)[number];
+
+export const LEAD_STATUS_LABELS: Record<LeadStatus, string> = {
+  NEW: "New",
+  CONTACTED: "Contacted",
+  CONVERTED: "Converted",
+  CLOSED: "Closed",
+};
+
+export const LEAD_TYPE_LABELS: Record<LeadType, string> = {
+  BUSINESS_REGISTRATION: "Business registration",
+  REQUIREMENT: "Requirement",
+  CONTACT: "Contact message",
+};
+
+export interface AdminLeadDTO {
+  id: string;
+  reference: string;
+  type: LeadType;
+  status: LeadStatus;
+  name: string;
+  companyName: string | null;
+  email: string;
+  phone: string | null;
+  categorySlug: string | null;
+  location: string | null;
+  message: string;
+  notes: string | null;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export const adminLeadUpdateSchema = z
+  .object({ status: z.enum(LEAD_STATUSES).optional(), notes: optText(2000) })
+  .refine((v) => v.status !== undefined || v.notes !== undefined, { message: "Nothing to update." });
+export type AdminLeadUpdate = z.output<typeof adminLeadUpdateSchema>;
+/** What the client sends: either field may be left out. */
+export type AdminLeadUpdateRequest = z.input<typeof adminLeadUpdateSchema>;
+
+/** Enquiries: visitor messages sent to a listing. */
+export type EnquiryStatus = (typeof ENQUIRY_STATUSES)[number];
+
+export const ENQUIRY_STATUS_LABELS: Record<EnquiryStatus, string> = {
+  PENDING_VERIFICATION: "Awaiting email confirmation",
+  NEW: "New",
+  CONTACTED: "Contacted",
+  CLOSED: "Closed",
+};
+
+export interface AdminEnquiryDTO {
+  id: string;
+  reference: string;
+  status: EnquiryStatus;
+  spamFlag: boolean;
+  senderName: string;
+  senderEmail: string;
+  senderPhone: string | null;
+  senderLocation: string;
+  message: string;
+  distributor: { id: string; name: string; slug: string };
+  createdAt: string;
+  verifiedAt: string | null;
+}
+
+/** Only the sender can confirm an enquiry, so admins move it between the worked states. */
+export const adminEnquiryUpdateSchema = z
+  .object({ status: z.enum(["NEW", "CONTACTED", "CLOSED"]).optional(), spamFlag: z.boolean().optional() })
+  .refine((v) => v.status !== undefined || v.spamFlag !== undefined, { message: "Nothing to update." });
+export type AdminEnquiryUpdate = z.output<typeof adminEnquiryUpdateSchema>;
+
+/** Requirements: close or reopen after moderation, and the responses businesses sent. */
+export const adminRequirementStatusSchema = z.object({ status: z.enum(["APPROVED", "CLOSED"]) });
+
+export interface AdminRequirementResponseDTO {
+  id: string;
+  reference: string;
+  senderName: string;
+  senderEmail: string;
+  senderPhone: string | null;
+  senderLocation: string;
+  message: string;
+  createdAt: string;
+}
+
+/** Listings (distributors and brands) managed from the back office. */
+export const LISTING_STATUSES = ["DRAFT", "SUBMITTED", "APPROVED", "REJECTED", "PAUSED", "ARCHIVED"] as const;
+export type ListingStatus = (typeof LISTING_STATUSES)[number];
+
+export const LISTING_STATUS_LABELS: Record<ListingStatus, string> = {
+  DRAFT: "Draft",
+  SUBMITTED: "Awaiting review",
+  APPROVED: "Approved",
+  REJECTED: "Rejected",
+  PAUSED: "Paused",
+  ARCHIVED: "Archived",
+};
+
+/** Each condition a listing must meet to be visible on the public site. */
+export interface ListingVisibilityDTO {
+  approved: boolean;
+  published: boolean;
+  organisationActive: boolean;
+  profileApproved: boolean;
+  subscriptionActive: boolean;
+  isPublic: boolean;
+}
+
+export interface AdminListingSummaryDTO {
+  id: string;
+  name: string;
+  slug: string;
+  businessType: BusinessType;
+  status: ListingStatus;
+  verificationStatus: VerificationStatus;
+  isFeatured: boolean;
+  category: { id: string; name: string } | null;
+  location: string;
+  listedUntil: string | null;
+  isPublic: boolean;
+  productCount: number;
+  enquiryCount: number;
+  updatedAt: string;
+}
+
+export interface AdminProductDTO {
+  id: string;
+  name: string;
+  publicSlug: string;
+  description: string | null;
+  categoryId: string | null;
+  packaging: string | null;
+  priceLabel: string | null;
+  published: boolean;
+  updatedAt: string;
+}
+
+export const adminListingInputSchema = z
+  .object({
+    name: z.string().trim().min(2, "Enter the company name").max(120),
+    businessType: z.enum(BUSINESS_TYPES),
+    summary: z.string().trim().min(10, "Write at least a short sentence").max(300),
+    description: z.string().trim().min(20, "Describe the business in a few sentences").max(5000),
+    categoryId: z.string().uuid().nullable().optional().transform((v) => v ?? null),
+    location: z.string().trim().min(2, "Enter where the business is based").max(120),
+    city: optText(80),
+    country: optText(80),
+    coverage: z.enum(COVERAGE_SCOPES),
+    territories: z.array(z.string().trim().min(1).max(80)).max(50).default([]),
+    specialties: z.array(z.string().trim().min(1).max(80)).max(30).default([]),
+    website: optHttpsUrl,
+    logoUrl: optHttpsUrl,
+    contactPerson: optText(120),
+    notificationEmail: z
+      .union([z.string().trim().email("Enter a valid email").max(200), z.literal(""), z.null()])
+      .optional()
+      .transform((v) => (v ? v.toLowerCase() : null)),
+    foundedYear: z.number().int().min(1800).max(new Date().getFullYear()).nullable().optional().transform((v) => v ?? null),
+    distributorshipInfo: optText(2000),
+    minimumOrder: optText(300),
+    supportOffered: optText(1000),
+    investmentMin: z.number().int().min(0).nullable().optional().transform((v) => v ?? null),
+    investmentMax: z.number().int().min(0).nullable().optional().transform((v) => v ?? null),
+    investmentCurrency: z.string().trim().length(3).toUpperCase().nullable().optional().transform((v) => v ?? null),
+    verificationStatus: z.enum(VERIFICATION_STATUSES),
+    isFeatured: z.boolean().default(false),
+    featuredUntil: isoDate.nullable().optional().transform((v) => v ?? null),
+    /** End of the paid listing period. Required to go live. */
+    listedUntil: isoDate.nullable().optional().transform((v) => v ?? null),
+    /** Lead this listing was created from; marked CONVERTED on save. */
+    fromLeadId: z.string().uuid().optional(),
+  })
+  .refine((v) => v.investmentMin === null || v.investmentMax === null || v.investmentMin <= v.investmentMax, {
+    path: ["investmentMax"],
+    message: "Maximum must be at least the minimum",
+  });
+export type AdminListingInput = z.output<typeof adminListingInputSchema>;
+
+export interface AdminListingDTO extends Omit<AdminListingInput, "fromLeadId"> {
+  id: string;
+  slug: string;
+  status: ListingStatus;
+  visibility: ListingVisibilityDTO;
+  products: AdminProductDTO[];
+  enquiryCount: number;
+  createdAt: string;
+  updatedAt: string;
+}
+
+/** PUBLISH makes a listing live (needs a future listedUntil); the others take it off the site. */
+export const adminListingActionSchema = z
+  .object({ action: z.enum(["PUBLISH", "PAUSE", "ARCHIVE", "REJECT"]), reason: z.string().trim().max(500).optional() })
+  .refine((v) => v.action !== "REJECT" || !!v.reason, { path: ["reason"], message: "Give a reason when rejecting." });
+export type AdminListingAction = z.output<typeof adminListingActionSchema>;
+
+export const adminProductInputSchema = z.object({
+  name: z.string().trim().min(2, "Enter the product name").max(120),
+  description: optText(2000),
+  categoryId: z.string().uuid().nullable().optional().transform((v) => v ?? null),
+  packaging: optText(200),
+  priceLabel: optText(80),
+  published: z.boolean().default(true),
+});
+export type AdminProductInput = z.output<typeof adminProductInputSchema>;
+
+/** Advertising campaigns. */
+export const AD_STATUSES = ["DRAFT", "PENDING_REVIEW", "APPROVED", "PAUSED", "REJECTED", "COMPLETED"] as const;
+export type AdStatus = (typeof AD_STATUSES)[number];
+
+export const AD_STATUS_LABELS: Record<AdStatus, string> = {
+  DRAFT: "Draft",
+  PENDING_REVIEW: "Awaiting review",
+  APPROVED: "Approved",
+  PAUSED: "Paused",
+  REJECTED: "Rejected",
+  COMPLETED: "Completed",
+};
+
+export const adminAdInputSchema = z
+  .object({
+    placement: z.enum(AD_PLACEMENTS),
+    advertiserName: z.string().trim().min(2, "Enter the advertiser").max(120),
+    headline: z.string().trim().min(3, "Enter a headline").max(120),
+    description: optText(300),
+    ctaLabel: z.string().trim().min(2).max(40).default("Learn more"),
+    destinationUrl: httpsUrl,
+    imageUrl: optHttpsUrl,
+    imageAlt: optText(200),
+    startsAt: isoDate,
+    endsAt: isoDate,
+    weight: z.number().int().min(1).max(10).default(1),
+    paymentVerified: z.boolean().default(false),
+    internalNotes: optText(2000),
+  })
+  .refine((v) => new Date(v.endsAt) > new Date(v.startsAt), { path: ["endsAt"], message: "End must be after the start" })
+  .refine((v) => !v.imageUrl || !!v.imageAlt, { path: ["imageAlt"], message: "Describe the image for screen readers" });
+export type AdminAdInput = z.output<typeof adminAdInputSchema>;
+
+export interface AdminAdDTO extends AdminAdInput {
+  id: string;
+  status: AdStatus;
+  impressions: number;
+  clicks: number;
+  /** Showing on the site right now: approved, paid and inside its dates. */
+  isLive: boolean;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export const adminAdActionSchema = z
+  .object({ action: z.enum(["APPROVE", "REJECT", "PAUSE", "RESUME"]), reason: z.string().trim().max(500).optional() })
+  .refine((v) => v.action !== "REJECT" || !!v.reason, { path: ["reason"], message: "Give a reason when rejecting." });
+export type AdminAdAction = z.output<typeof adminAdActionSchema>;
+
+export interface AdminPage<T> {
+  data: T[];
+  pagination: PaginationDTO;
 }

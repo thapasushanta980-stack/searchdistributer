@@ -15,13 +15,16 @@ interface Tile {
 }
 
 const TILES: Tile[] = [
+  { key: "leadsNew", label: "New leads", hint: "Registrations and messages nobody has handled yet", to: "/leads?status=NEW", attention: true },
+  { key: "enquiriesNew", label: "New enquiries", hint: "Confirmed enquiries waiting to be followed up", to: "/enquiries?status=NEW", attention: true },
   { key: "requirementsPending", label: "Requirements to review", hint: "Buyer requirements waiting for moderation", to: "/requirements", attention: true },
-  { key: "listingsPending", label: "Listings to review", hint: "Distributor listings submitted for approval", attention: true },
-  { key: "productsPending", label: "Products to review", hint: "Products submitted for approval", attention: true },
-  { key: "adsPending", label: "Ads to review", hint: "Campaigns awaiting approval", attention: true },
-  { key: "enquiriesAwaitingVerification", label: "Unverified enquiries", hint: "Senders yet to confirm their email", attention: false },
+  { key: "listingsPending", label: "Listings to review", hint: "Distributor listings submitted for approval", to: "/listings?status=SUBMITTED", attention: true },
+  { key: "adsPending", label: "Ads to review", hint: "Campaigns awaiting approval", to: "/ads?status=PENDING_REVIEW", attention: true },
+  { key: "listingsLive", label: "Listings on the site", hint: "Published listings inside their listing period", to: "/listings?live=true", attention: false },
+  { key: "adsLive", label: "Ads showing now", hint: "Approved, paid and inside their dates", to: "/ads?status=APPROVED", attention: false },
+  { key: "enquiriesAwaitingVerification", label: "Unconfirmed enquiries", hint: "Senders yet to confirm their email", to: "/enquiries?status=PENDING_VERIFICATION", attention: false },
+  { key: "leadsLast7Days", label: "Leads, last 7 days", hint: "Contact and registration submissions", to: "/leads", attention: false },
   { key: "outboxFailed", label: "Failed emails", hint: "Notifications that ran out of retries", attention: true },
-  { key: "leadsLast7Days", label: "Leads, last 7 days", hint: "Contact and registration submissions", attention: false },
 ];
 
 export function DashboardPage() {

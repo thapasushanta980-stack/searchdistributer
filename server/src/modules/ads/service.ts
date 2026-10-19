@@ -21,7 +21,7 @@ export function safeDestination(raw: string): string | null {
  * Eligibility, evaluated against the current time on every request (a delayed scheduler can never keep an ad live):
  * approved creative + verified payment + inside [startsAt, endsAt) + advertiser still publishable.
  */
-function eligibleWhere(now: Date): Prisma.AdCampaignWhereInput {
+export function eligibleWhere(now: Date): Prisma.AdCampaignWhereInput {
   return {
     status: "APPROVED",
     paymentVerified: true,
