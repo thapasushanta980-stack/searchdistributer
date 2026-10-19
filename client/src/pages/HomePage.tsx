@@ -5,6 +5,7 @@ import { Link, useNavigate } from "react-router-dom";
 import { parseRequirementSearch, type HeadSpec, type RequirementSearchParams } from "@sd/shared";
 import { SearchPanel } from "@/components/distributors/SearchPanel";
 import { CtaBand } from "@/components/home/blocks";
+import { HowItWorks } from "@/components/home/HowItWorks";
 import { AdBanner, AdSpotlight } from "@/components/ads/AdSlot";
 import { Showcase } from "@/components/home/Showcase";
 import { HeroNetwork } from "@/components/home/visuals";
@@ -196,6 +197,11 @@ export function HomePage() {
         )}
       </Section>
 
+      {/* ---------------- How it works ---------------- */}
+      <Section>
+        <Head eyebrow="HOW IT WORKS" title="From first search to appointed distributor." text="Whether you make products or want to distribute them, the path is short and you talk to each other directly." />
+        <HowItWorks />
+      </Section>
       {/* ---------------- Why ---------------- */}
       <Section>
         <Head eyebrow="WHY SEARCH DISTRIBUTOR" title="Built to make B2B discovery easier." />

@@ -101,7 +101,8 @@ export async function getAnalytics(range: AnalyticsRange, now = new Date()): Pro
   const from = new Date(now.getTime() - range * 86_400_000);
   const prevFrom = new Date(from.getTime() - range * 86_400_000);
   const inRange = Prisma.sql`e."createdAt" >= ${from} AND e."createdAt" < ${now}`;
-  const contactTypes = Prisma.sql`('WHATSAPP_CLICK', 'ENQUIRY')`;
+  // Contacts with a listing: enquiries, and WhatsApp chats with a business (chats with the site's own team are excluded).
+  const isContact = Prisma.sql`(e."type" = 'ENQUIRY' OR (e."type" = 'WHATSAPP_CLICK' AND e."distributorId" IS NOT NULL))`;
 
   const kpiRows = (start: Date, end: Date) => prisma.$queryRaw<
     Array<{ visitors: bigint; searches: bigint; zero: bigint; views: bigint; whatsapp: bigint; enquiries: bigint; leads: bigint }>
@@ -110,7 +111,7 @@ export async function getAnalytics(range: AnalyticsRange, now = new Date()): Pro
            COUNT(*) FILTER (WHERE e."type" = 'SEARCH') AS searches,
            COUNT(*) FILTER (WHERE e."type" = 'SEARCH' AND e."resultCount" = 0) AS zero,
            COUNT(*) FILTER (WHERE e."type" = 'LISTING_VIEW') AS views,
-           COUNT(*) FILTER (WHERE e."type" = 'WHATSAPP_CLICK') AS whatsapp,
+           COUNT(*) FILTER (WHERE e."type" = 'WHATSAPP_CLICK' AND e."distributorId" IS NOT NULL) AS whatsapp,
            COUNT(*) FILTER (WHERE e."type" = 'ENQUIRY') AS enquiries,
            COUNT(*) FILTER (WHERE e."type" = 'LEAD') AS leads
     FROM "analytics_events" e
@@ -124,7 +125,7 @@ export async function getAnalytics(range: AnalyticsRange, now = new Date()): Pro
              COUNT(DISTINCT e."visitor") AS visitors,
              COUNT(*) FILTER (WHERE e."type" = 'SEARCH') AS searches,
              COUNT(*) FILTER (WHERE e."type" = 'LISTING_VIEW') AS views,
-             COUNT(*) FILTER (WHERE e."type" IN ${contactTypes}) AS contacts
+             COUNT(*) FILTER (WHERE ${isContact}) AS contacts
       FROM "analytics_events" e WHERE ${inRange}
       GROUP BY 1 ORDER BY 1`,
     prisma.$queryRaw<Array<{ dow: number; hour: number; count: bigint }>>`
@@ -150,7 +151,7 @@ export async function getAnalytics(range: AnalyticsRange, now = new Date()): Pro
       SELECT e."categorySlug" AS slug,
              COUNT(*) FILTER (WHERE e."type" = 'SEARCH') AS searches,
              COUNT(*) FILTER (WHERE e."type" IN ('CATEGORY_VIEW', 'LISTING_VIEW', 'PRODUCT_VIEW')) AS views,
-             COUNT(*) FILTER (WHERE e."type" IN ${contactTypes}) AS contacts
+             COUNT(*) FILTER (WHERE ${isContact}) AS contacts
       FROM "analytics_events" e WHERE ${inRange} AND e."categorySlug" IS NOT NULL
       GROUP BY 1`,
     prisma.$queryRaw<Array<{ id: string; name: string | null; slug: string | null; views: bigint; whatsapp: bigint; enquiries: bigint }>>`

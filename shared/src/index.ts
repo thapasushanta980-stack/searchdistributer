@@ -44,7 +44,9 @@ export const SORT_LABELS: Record<SortOption, string> = {
 };
 
 export const ENQUIRY_STATUSES = ["PENDING_VERIFICATION", "NEW", "CONTACTED", "CLOSED"] as const;
-export const LEAD_TYPES = ["BUSINESS_REGISTRATION", "REQUIREMENT", "CONTACT"] as const;
+export const LEAD_TYPES = ["BUSINESS_REGISTRATION", "REQUIREMENT", "CONTACT", "FIND_DISTRIBUTORS", "BECOME_DISTRIBUTOR"] as const;
+/** Lead types where the team must be able to call back, so a phone number is required. */
+export const PHONE_REQUIRED_LEAD_TYPES: readonly LeadType[] = ["BUSINESS_REGISTRATION", "FIND_DISTRIBUTORS", "BECOME_DISTRIBUTOR"];
 export type LeadType = (typeof LEAD_TYPES)[number];
 
 export const DEFAULT_PAGE_SIZE = 12;
@@ -201,11 +203,20 @@ export const leadInputSchema = z
     website: z.string().max(0).optional(),
   })
   .superRefine((v, ctx) => {
-    if (v.type === "BUSINESS_REGISTRATION" && !v.phone) {
+    if (PHONE_REQUIRED_LEAD_TYPES.includes(v.type) && !v.phone) {
       ctx.addIssue({ code: z.ZodIssueCode.custom, path: ["phone"], message: "Enter a phone number so we can reach you" });
     }
   });
 export type LeadInput = z.input<typeof leadInputSchema>;
+
+/**
+ * Same rules for forms where a phone is always required, but with phone as a plain required field.
+ * (Cross-field checks only run once every other field is valid, so a form using leadInputSchema would
+ * reveal "phone required" only on a second attempt.)
+ */
+export const phoneRequiredLeadSchema = leadInputSchema.innerType().extend({
+  phone: z.string().trim().min(1, "Enter a phone number so we can reach you").max(24).regex(phoneRegex, "Enter a valid phone number"),
+});
 
 /* ------------------------------------------------------------------ */
 /* API payload types                                                   */
@@ -379,6 +390,10 @@ export interface SiteConfigDTO {
   siteUrl: string;
   siteName: string;
   supportEmail: string | null;
+  /** The team's phone, shown on the site. */
+  supportPhone: string | null;
+  /** A "Chat with us" WhatsApp button is available through /go/support. */
+  supportWhatsapp: boolean;
   twitter: string | null;
   editor: { name: string; role: string | null; bio: string } | null;
   showDemoData: boolean;
@@ -724,6 +739,8 @@ export const LEAD_TYPE_LABELS: Record<LeadType, string> = {
   BUSINESS_REGISTRATION: "Business registration",
   REQUIREMENT: "Requirement",
   CONTACT: "Contact message",
+  FIND_DISTRIBUTORS: "Brand seeking distributors",
+  BECOME_DISTRIBUTOR: "Wants a distributorship",
 };
 
 export interface AdminLeadDTO {

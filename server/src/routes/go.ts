@@ -7,6 +7,16 @@ import { getDistributorBySlug } from "../modules/distributors/service.js";
 
 export const goRoutes = Router();
 
+/** "Chat with us": the team's WhatsApp, counted as a support chat (no listing attached). */
+goRoutes.get("/go/support", adEventLimiter, (req, res) => {
+  res.setHeader("X-Robots-Tag", "noindex, nofollow");
+  res.setHeader("Cache-Control", "no-store");
+  const digits = waDigits(config.SUPPORT_WHATSAPP ?? "");
+  if (digits.length < 7) return res.redirect(302, "/contact");
+  if (req.method === "GET") recordEvent(req, { type: "WHATSAPP_CLICK", scope: "support" });
+  res.redirect(302, `https://wa.me/${digits}?text=${encodeURIComponent(`Hi ${config.SITE_NAME}, I have a question.`)}`);
+});
+
 /** wa.me wants the number as digits only, with the country code. */
 export const waDigits = (n: string) => n.replace(/\D/g, "").replace(/^00/, "");
 

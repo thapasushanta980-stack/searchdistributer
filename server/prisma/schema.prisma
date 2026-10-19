@@ -71,6 +71,10 @@ enum LeadType {
   BUSINESS_REGISTRATION
   REQUIREMENT
   CONTACT
+  /// Quick form: a brand or manufacturer looking for distributors.
+  FIND_DISTRIBUTORS
+  /// Quick form: someone who wants to become a distributor.
+  BECOME_DISTRIBUTOR
 }
 
 enum RequirementKind {

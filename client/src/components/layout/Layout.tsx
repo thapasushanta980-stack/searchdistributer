@@ -2,6 +2,7 @@ import { ArrowLeft, ChevronRight, WifiOff } from "lucide-react";
 import type { ReactNode } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { TopProgress } from "@/components/ui/top-progress";
+import { QuickRequirementPrompt } from "./QuickRequirementPrompt";
 import { useOnlineStatus } from "@/lib/utils";
 import { SiteFooter } from "./SiteFooter";
 import { SiteHeader } from "./SiteHeader";
@@ -24,6 +25,7 @@ export function Layout({ children }: { children: ReactNode }) {
         {children}
       </main>
       <SiteFooter />
+      <QuickRequirementPrompt />
     </div>
   );
 }

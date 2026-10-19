@@ -1,4 +1,4 @@
-import { Mail } from "lucide-react";
+import { Mail, MessageCircle, Phone } from "lucide-react";
 import { Link } from "react-router-dom";
 import { Reveal } from "@/components/ui/reveal";
 import { useSite } from "@/lib/context";
@@ -83,6 +83,16 @@ export function SiteFooter() {
               <Link to="/contact" className="inline-flex min-h-11 items-center gap-1.5 hover:text-primary sm:min-h-0">
                 <Mail className="h-4 w-4" aria-hidden /> Contact us
               </Link>
+            )}
+            {site.supportPhone && (
+              <a href={`tel:${site.supportPhone.replace(/[^+d]/g, "")}`} className="inline-flex min-h-11 items-center gap-1.5 hover:text-primary sm:min-h-0">
+                <Phone className="h-4 w-4" aria-hidden /> {site.supportPhone}
+              </a>
+            )}
+            {site.supportWhatsapp && (
+              <a href="/go/support" target="_blank" rel="noopener nofollow" className="inline-flex min-h-11 items-center gap-1.5 hover:text-primary sm:min-h-0">
+                <MessageCircle className="h-4 w-4" aria-hidden /> WhatsApp us
+              </a>
             )}
             {site.twitter && (
               <a href={`https://x.com/${site.twitter.replace(/^@/, "")}`} rel="me noopener" className="hover:text-primary">

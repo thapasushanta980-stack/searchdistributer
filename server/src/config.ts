@@ -25,6 +25,10 @@ const schema = z.object({
   SMTP_PASS: z.preprocess(blank, z.string().optional()),
   MAIL_FROM: z.string().default("Search Distributor <no-reply@localhost>"),
   SUPPORT_EMAIL: z.preprocess(blank, z.string().email().optional()),
+  /** The team's phone number, shown in the footer and contact areas. */
+  SUPPORT_PHONE: z.preprocess(blank, z.string().regex(/^[+()\d\s.-]{6,24}$/).optional()),
+  /** The team's WhatsApp number (with country code). Enables the site-wide "Chat with us" button. */
+  SUPPORT_WHATSAPP: z.preprocess(blank, z.string().regex(/^[+()\d\s.-]{6,24}$/).optional()),
   SITE_NAME: z.string().default("Search Distributor"),
   SITE_TWITTER: z.preprocess(blank, z.string().optional()),
   SITE_EDITOR_NAME: z.preprocess(blank, z.string().optional()),
@@ -84,6 +88,8 @@ export const siteConfig: SiteConfigDTO = {
   siteUrl: config.siteUrl,
   siteName: env.SITE_NAME,
   supportEmail: env.SUPPORT_EMAIL ?? null,
+  supportPhone: env.SUPPORT_PHONE ?? null,
+  supportWhatsapp: !!env.SUPPORT_WHATSAPP,
   twitter: env.SITE_TWITTER ?? null,
   editor:
     env.SITE_EDITOR_NAME && env.SITE_EDITOR_BIO

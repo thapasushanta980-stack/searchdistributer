@@ -5,7 +5,7 @@ import { useRef, useState } from "react";
 import { useForm } from "react-hook-form";
 import { Link } from "react-router-dom";
 import type { z } from "zod";
-import { leadInputSchema, type LeadType } from "@sd/shared";
+import { PHONE_REQUIRED_LEAD_TYPES, leadInputSchema, phoneRequiredLeadSchema, type LeadType } from "@sd/shared";
 import { Button } from "@/components/ui/button";
 import { Field, Input, Select, Textarea } from "@/components/ui/form";
 import { ApiError, submitLead } from "@/lib/api";
@@ -34,6 +34,22 @@ const COPY: Record<LeadType, { submit: string; message: string; messageHint: str
     showCategory: true,
   },
   CONTACT: { submit: "Send message", message: "Message", messageHint: "How can we help?", success: "Thanks. We received your message.", showCompany: false, showCategory: false },
+  FIND_DISTRIBUTORS: {
+    submit: "Find distributors",
+    message: "Your products and target markets",
+    messageHint: "What you make, where you want distributors and any terms you offer.",
+    success: "Thanks. Our team will call you to understand your needs and suggest distributors.",
+    showCompany: true,
+    showCategory: true,
+  },
+  BECOME_DISTRIBUTOR: {
+    submit: "Find distributorships",
+    message: "What would you like to distribute?",
+    messageHint: "Products or categories, your area, investment range and warehouse space.",
+    success: "Thanks. Our team will call you with brands looking for distributors in your area.",
+    showCompany: true,
+    showCategory: true,
+  },
 };
 
 export function LeadForm({ type }: { type: LeadType }) {
@@ -50,7 +66,7 @@ export function LeadForm({ type }: { type: LeadType }) {
     setError,
     formState: { errors, isSubmitting },
   } = useForm<FormIn, unknown, FormOut>({
-    resolver: zodResolver(leadInputSchema),
+    resolver: zodResolver(PHONE_REQUIRED_LEAD_TYPES.includes(type) ? phoneRequiredLeadSchema : leadInputSchema),
     mode: "onTouched",
     defaultValues: { type, name: "", companyName: "", email: "", phone: "", categorySlug: "", location: "", message: "", consent: false as unknown as true, idempotencyKey: key.current, website: "" },
   });
@@ -113,7 +129,7 @@ export function LeadForm({ type }: { type: LeadType }) {
           </Field>
         )}
         {/* Registrations need a number: the team calls every business before listing it (WhatsApp preferred). */}
-        <Field label={type === "BUSINESS_REGISTRATION" ? "Phone (WhatsApp preferred)" : "Phone"} optional={type !== "BUSINESS_REGISTRATION"} error={errors.phone?.message}>
+        <Field label={PHONE_REQUIRED_LEAD_TYPES.includes(type) ? "Phone (WhatsApp preferred)" : "Phone"} optional={!PHONE_REQUIRED_LEAD_TYPES.includes(type)} error={errors.phone?.message}>
           {({ id, describedBy, invalid }) => <Input id={id} type="tel" autoComplete="tel" aria-invalid={invalid} aria-describedby={describedBy} {...register("phone")} />}
         </Field>
         {copy.showCategory && (

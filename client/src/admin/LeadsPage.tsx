@@ -105,7 +105,7 @@ function LeadItem({ lead }: { lead: AdminLeadDTO }) {
               </option>
             ))}
           </Select>
-          {lead.type === "BUSINESS_REGISTRATION" && lead.status !== "CONVERTED" && (
+          {(lead.type === "BUSINESS_REGISTRATION" || lead.type === "FIND_DISTRIBUTORS") && lead.status !== "CONVERTED" && (
             <Button size="sm" variant="secondary" asChild>
               <Link to={`/listings/new?fromLead=${lead.id}`}>
                 <Building2 className="h-4 w-4" aria-hidden /> Create listing

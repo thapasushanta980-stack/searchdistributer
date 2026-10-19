@@ -7,7 +7,7 @@ import { makeReference } from "../../lib/reference.js";
 import { enqueue } from "../notifications/outbox.js";
 
 type LeadInput = z.output<typeof leadInputSchema>;
-const PREFIX = { BUSINESS_REGISTRATION: "REG", REQUIREMENT: "REQ", CONTACT: "MSG" } as const;
+const PREFIX = { BUSINESS_REGISTRATION: "REG", REQUIREMENT: "REQ", CONTACT: "MSG", FIND_DISTRIBUTORS: "BRD", BECOME_DISTRIBUTOR: "DST" } as const;
 
 export async function submitLead(input: LeadInput): Promise<LeadResponse> {
   // Honeypot: report success so bots learn nothing, but store nothing.

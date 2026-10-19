@@ -22,6 +22,8 @@ services:
       SMTP_PASS: ${SMTP_PASS:-}
       MAIL_FROM: ${MAIL_FROM:-}
       SUPPORT_EMAIL: ${SUPPORT_EMAIL:-}
+      SUPPORT_PHONE: ${SUPPORT_PHONE:-}
+      SUPPORT_WHATSAPP: ${SUPPORT_WHATSAPP:-}
       SITE_NAME: ${SITE_NAME:-Search Distributor}
     ports:
       - "${APP_PORT:-3000}:3000"
