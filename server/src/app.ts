@@ -26,11 +26,12 @@ export async function createApp(): Promise<Express> {
         ? {
             directives: {
               defaultSrc: ["'self'"],
-              scriptSrc: ["'self'"],
+              // Cloudflare Web Analytics: Cloudflare injects its beacon into proxied pages and reports to cloudflareinsights.com.
+              scriptSrc: ["'self'", "https://static.cloudflareinsights.com"],
               styleSrc: ["'self'", "'unsafe-inline'"],
               imgSrc: ["'self'", "data:", "https:"],
               fontSrc: ["'self'", "data:"],
-              connectSrc: ["'self'"],
+              connectSrc: ["'self'", "https://cloudflareinsights.com"],
               frameAncestors: ["'none'"],
               objectSrc: ["'none'"],
               baseUri: ["'self'"],
