@@ -10,8 +10,6 @@ import { errorHandler, notFoundApi } from "./middleware/common.js";
 import { admin } from "./routes/admin.js";
 import { api } from "./routes/api.js";
 import { seoRoutes } from "./routes/seo.js";
-import { studioHtml } from "./studio-ui/page.js";
-import { studioJs } from "./studio-ui/script.js";
 import { mountSsr } from "./ssr.js";
 
 export async function createApp(): Promise<Express> {
@@ -56,19 +54,8 @@ export async function createApp(): Promise<Express> {
   app.use(canonicalRedirects);
   app.use(seoRoutes);
   app.use("/api/v1", express.json({ limit: "32kb" }), api);
-  app.use("/api/admin/v1", express.json({ limit: "256kb" }), admin);
+  app.use("/api/admin/v1", express.json({ limit: "32kb" }), admin);
   app.use("/api", notFoundApi);
-
-  // Content Studio page. It holds no secrets; all data comes from /api/admin/v1/studio behind the admin login.
-  app.get("/studio", (_req, res) => {
-    res.setHeader("Cache-Control", "no-store");
-    res.setHeader("X-Robots-Tag", "noindex, nofollow");
-    res.type("html").send(studioHtml);
-  });
-  app.get("/studio/app.js", (_req, res) => {
-    res.setHeader("Cache-Control", "no-store");
-    res.type("js").send(studioJs);
-  });
 
   await mountSsr(app);
   app.use(errorHandler);

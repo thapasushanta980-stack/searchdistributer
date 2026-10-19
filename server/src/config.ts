@@ -30,16 +30,6 @@ const schema = z.object({
   SITE_EDITOR_NAME: z.preprocess(blank, z.string().optional()),
   SITE_EDITOR_ROLE: z.preprocess(blank, z.string().optional()),
   SITE_EDITOR_BIO: z.preprocess(blank, z.string().optional()),
-  ZERNIO_API_KEY: z.preprocess(blank, z.string().optional()),
-  ZERNIO_API_URL: z.string().url().default("https://zernio.com/api/v1"),
-  /** Zernio account _id of the connected TikTok account (GET /api/admin/social/accounts lists it). */
-  /** Nurvexa Labs carousel automation: off | draft (to TikTok inbox) | publish (live). */
-  NURVEXA_POST_MODE: z.enum(["off", "draft", "publish"]).default("off"),
-  /** Hour (0-23, Nepal time UTC+5:45) after which the daily carousel is posted. */
-  NURVEXA_POST_HOUR: z.coerce.number().int().min(0).max(23).default(18),
-  /** Auto-post newly approved distributors to TikTok. */
-  ZERNIO_AUTOPOST: bool,
-  ZERNIO_TIKTOK_ACCOUNT_ID: z.preprocess(blank, z.string().optional()),
 });
 
 const parsed = schema.safeParse(process.env);

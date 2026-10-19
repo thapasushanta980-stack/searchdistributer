@@ -7,9 +7,6 @@ import { adminLoginLimiter, ah, parseOrThrow } from "../middleware/common.js";
 import { login, logout, SESSION_COOKIE, sessionMaxAgeMs } from "../modules/admin/auth.js";
 import { audit } from "../modules/admin/audit.js";
 import { CSRF_HEADER, requireAdmin, requireRole, sessionToken } from "../modules/admin/middleware.js";
-import { studio } from "./studio.js";
-import { listAccounts, getPost } from "../modules/social/zernio.js";
-import { postDistributorToTikTok } from "../modules/social/tiktok.js";
 import { decideRequirement, getStats, listAudit, listRequirements } from "../modules/admin/service.js";
 
 export const admin = Router();
@@ -97,54 +94,3 @@ admin.get(
     res.json(await listAudit(page));
   }),
 );
-
-// --- Social (Zernio -> TikTok) ---
-const tiktokPostSchema = z
-  .object({
-    distributorId: z.string().uuid(),
-    videoUrl: z.string().url().optional(),
-    imageUrls: z.array(z.string().url()).min(1).max(35).optional(),
-    caption: z.string().max(2200).optional(),
-    scheduledFor: z.string().optional(),
-    timezone: z.string().optional(),
-    publishNow: z.boolean().optional(),
-    draft: z.boolean().optional(),
-  })
-  .strict();
-
-admin.get(
-  "/social/accounts",
-  requireRole("MODERATOR"),
-  ah(async (_req, res) => {
-    res.json({ data: await listAccounts() });
-  }),
-);
-
-admin.get(
-  "/social/posts/:id",
-  requireRole("MODERATOR"),
-  ah(async (req, res) => {
-    res.json({ data: await getPost(String(req.params.id)) });
-  }),
-);
-
-admin.post(
-  "/social/tiktok/post",
-  requireRole("MODERATOR"),
-  ah(async (req, res) => {
-    if (req.get(CSRF_HEADER) !== "1") throw new HttpError(403, "CSRF", "Missing required request header.");
-    const input = parseOrThrow(tiktokPostSchema, req.body);
-    const result = await postDistributorToTikTok(input);
-    await audit({
-      adminId: req.admin!.id,
-      action: "social.tiktok_post",
-      entityType: "distributor",
-      entityId: input.distributorId,
-      meta: { zernioPostId: result.post?._id ?? null, status: result.post?.status ?? null },
-      ip: req.ip,
-    });
-    res.status(result.partialFailure ? 502 : 201).json({ data: result.post });
-  }),
-);
-
-admin.use("/studio", requireRole("MODERATOR"), studio);

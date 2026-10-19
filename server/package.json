@@ -15,8 +15,7 @@
     "db:seed": "tsx prisma/seed.ts",
     "db:fixtures": "tsx prisma/dev-fixtures.ts",
     "admin:create": "tsx prisma/create-admin.ts",
-    "content:preview": "tsx prisma/content-preview.ts",
-    "content:post": "tsx prisma/content-post.ts"
+    "admin:create:prod": "node dist/create-admin.js"
   },
   "dependencies": {
     "@prisma/client": "^6.19.0",
@@ -29,8 +28,8 @@
     "helmet": "^8.1.0",
     "nodemailer": "^6.10.0",
     "pino": "^9.9.0",
-    "sharp": "^0.35.5",
     "pino-http": "^10.5.0",
+    "prisma": "^6.19.0",
     "sirv": "^3.0.1",
     "zod": "^3.25.0"
   },
@@ -39,7 +38,6 @@
     "@types/express": "^4.17.23",
     "@types/node": "^22.15.0",
     "@types/nodemailer": "^6.4.17",
-    "prisma": "^6.19.0",
     "tsup": "^8.5.0",
     "tsx": "^4.20.0",
     "typescript": "^5.9.0",
