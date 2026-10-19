@@ -65,7 +65,7 @@ Coolify → **Project → + New → Database → PostgreSQL 16**.
 | Dockerfile Location | `/Dockerfile` |
 | Ports Exposes | `3000` |
 | Domains | `https://searchdistributor.online` (add `https://www.searchdistributor.online` too if you want; the app redirects www to the apex) |
-| Health Check | leave to the Dockerfile, or path `/healthz` on port `3000` |
+| Health Check | enable it with path `/healthz` on port `3000` (Coolify runs it with `curl`, which the image includes) |
 
 The app keeps no files on disk, so it needs no persistent volume. All state is in Postgres.
 

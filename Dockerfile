@@ -3,9 +3,9 @@
 # Build context is the repository root (Coolify: Build Pack = Dockerfile, Base Directory = /).
 
 FROM node:22-bookworm-slim AS base
-# openssl: required by the Prisma engines.
+# openssl: required by the Prisma engines. curl: Coolify runs its health check with curl/wget inside the container.
 RUN apt-get update \
- && apt-get install -y --no-install-recommends openssl ca-certificates \
+ && apt-get install -y --no-install-recommends openssl ca-certificates curl \
  && rm -rf /var/lib/apt/lists/*
 WORKDIR /app
 
