@@ -3,7 +3,7 @@ import { z } from "zod";
 import { adminLoginSchema, moderationDecisionSchema } from "@sd/shared";
 import { config } from "../config.js";
 import { HttpError } from "../lib/errors.js";
-import { adminLoginLimiter, ah, parseOrThrow } from "../middleware/common.js";
+import { adminLoginLimiter, ah, apiLimiter, parseOrThrow } from "../middleware/common.js";
 import { login, logout, SESSION_COOKIE, sessionMaxAgeMs } from "../modules/admin/auth.js";
 import { audit } from "../modules/admin/audit.js";
 import { CSRF_HEADER, requireAdmin, requireRole, sessionToken } from "../modules/admin/middleware.js";
@@ -12,6 +12,8 @@ import { decideRequirement, getStats, listAudit, listRequirements } from "../mod
 export const admin = Router();
 
 // Admin responses are private and must never be cached by a browser or proxy.
+// Every admin route shares the global per-IP limit; login adds its own stricter one.
+admin.use(apiLimiter);
 admin.use((_req, res, next) => {
   res.setHeader("Cache-Control", "no-store");
   res.setHeader("X-Robots-Tag", "noindex, nofollow");

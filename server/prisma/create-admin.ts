@@ -19,5 +19,8 @@ if (role !== "SUPER_ADMIN" && role !== "MODERATOR") throw new Error("ADMIN_ROLE 
 
 const passwordHash = await hashPassword(password);
 await prisma.adminUser.upsert({ where: { email }, create: { email, name, passwordHash, role }, update: { name, passwordHash, role, isActive: true } });
+// A reset must end any session opened with the old password.
+const admin = await prisma.adminUser.findUniqueOrThrow({ where: { email }, select: { id: true } });
+await prisma.adminSession.deleteMany({ where: { adminId: admin.id } });
 console.log(`Admin ready: ${email} (${role})`);
 await prisma.$disconnect();

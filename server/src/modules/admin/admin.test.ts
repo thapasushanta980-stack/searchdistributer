@@ -22,7 +22,7 @@ const db = vi.hoisted(() => {
     },
     adminSession: {
       create: async ({ data }: any) => {
-        const row = { id: id(), ...data };
+        const row = { id: id(), lastSeenAt: new Date(), ...data }; // lastSeenAt defaults to now(), as in the schema
         state.sessions.push(row);
         return row;
       },
@@ -33,8 +33,15 @@ const db = vi.hoisted(() => {
       delete: async ({ where }: any) => {
         state.sessions = state.sessions.filter((s) => s.id !== where.id);
       },
+      update: async ({ where, data }: any) => Object.assign(pick(state.sessions, where), data),
       deleteMany: async ({ where }: any) => {
-        state.sessions = state.sessions.filter((s) => s.tokenHash !== where.tokenHash);
+        const before = state.sessions.length;
+        const hit = (s: any) =>
+          where.OR
+            ? where.OR.some((c: any) => (c.expiresAt ? s.expiresAt <= c.expiresAt.lte : s.lastSeenAt < c.lastSeenAt.lt))
+            : Object.entries(where).every(([k, v]) => s[k] === v);
+        state.sessions = state.sessions.filter((s) => !hit(s));
+        return { count: before - state.sessions.length };
       },
     },
     auditLog: {
@@ -61,7 +68,7 @@ vi.mock("../../db.js", () => ({ prisma: db.prisma }));
 
 import { errorHandler } from "../../middleware/common.js";
 import { admin } from "../../routes/admin.js";
-import { hashPassword, verifyPassword } from "./auth.js";
+import { hashPassword, purgeDeadSessions, revokeAllSessions, verifyPassword } from "./auth.js";
 
 const PASSWORD = "correct horse battery";
 let server: Server;
@@ -188,6 +195,24 @@ describe("authentication", () => {
     expect(db.state.sessions).toHaveLength(0);
   });
 
+  it("rejects a session that has been idle too long, even inside its 12 h lifetime", async () => {
+    const { cookie } = await signIn("mod@example.com");
+    db.state.sessions[0].lastSeenAt = new Date(Date.now() - 3 * 3600_000);
+    expect((await call("/auth/me", { cookie })).status).toBe(401);
+    expect(db.state.sessions).toHaveLength(0);
+  });
+
+  it("refreshes lastSeenAt on use, but not on every request", async () => {
+    const { cookie } = await signIn("mod@example.com");
+    const fresh = db.state.sessions[0].lastSeenAt;
+    await call("/auth/me", { cookie });
+    expect(db.state.sessions[0].lastSeenAt).toBe(fresh); // seen moments ago: no write
+    db.state.sessions[0].lastSeenAt = new Date(Date.now() - 10 * 60_000);
+    const stale = db.state.sessions[0].lastSeenAt;
+    expect((await call("/auth/me", { cookie })).status).toBe(200);
+    expect(db.state.sessions[0].lastSeenAt.getTime()).toBeGreaterThan(stale.getTime());
+  });
+
   it("rejects a session whose admin was deactivated", async () => {
     const { cookie } = await signIn("mod@example.com");
     db.state.users.find((u) => u.id === "u-mod").isActive = false;
@@ -281,5 +306,25 @@ describe("moderation decision", () => {
   it("requires authentication", async () => {
     expect((await decide(undefined, { decision: "APPROVE" })).status).toBe(401);
     expect(db.state.requirements[0].status).toBe("PENDING_REVIEW");
+  });
+});
+
+describe("session housekeeping", () => {
+  const session = (id: string, adminId: string, over: object = {}) => ({ id, tokenHash: id, adminId, expiresAt: new Date(Date.now() + 3600_000), lastSeenAt: new Date(), ...over });
+
+  it("purges expired and idle sessions but keeps live ones", async () => {
+    db.state.sessions = [
+      session("live", "u-mod"),
+      session("expired", "u-mod", { expiresAt: new Date(Date.now() - 1000) }),
+      session("idle", "u-mod", { lastSeenAt: new Date(Date.now() - 3 * 3600_000) }),
+    ];
+    expect(await purgeDeadSessions()).toBe(2);
+    expect(db.state.sessions.map((s) => s.id)).toEqual(["live"]);
+  });
+
+  it("revokeAllSessions signs one admin out everywhere and leaves others alone", async () => {
+    db.state.sessions = [session("a", "u-mod"), session("b", "u-mod"), session("c", "u-super")];
+    await revokeAllSessions("u-mod");
+    expect(db.state.sessions.map((s) => s.id)).toEqual(["c"]);
   });
 });

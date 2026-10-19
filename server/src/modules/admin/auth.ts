@@ -3,6 +3,10 @@ import type { AdminRole } from "@prisma/client";
 import { prisma } from "../../db.js";
 
 const SESSION_TTL_MS = 12 * 60 * 60 * 1000;
+/** A session with no requests for this long is dead, even if its 12 h lifetime hasn't ended. */
+const IDLE_TIMEOUT_MS = 2 * 60 * 60 * 1000;
+/** lastSeenAt is refreshed at most this often, to avoid a write on every request. */
+const TOUCH_INTERVAL_MS = 5 * 60 * 1000;
 const SCRYPT = { N: 16384, r: 8, p: 1 } as const;
 
 export interface AdminPrincipal {
@@ -57,9 +61,13 @@ export async function authenticate(token: string | undefined): Promise<AdminPrin
   if (!token || token.length > 100) return null;
   const session = await prisma.adminSession.findUnique({ where: { tokenHash: sha256(token) }, include: { admin: true } });
   if (!session) return null;
-  if (session.expiresAt.getTime() <= Date.now() || !session.admin.isActive) {
+  const now = Date.now();
+  if (session.expiresAt.getTime() <= now || now - session.lastSeenAt.getTime() > IDLE_TIMEOUT_MS || !session.admin.isActive) {
     await prisma.adminSession.delete({ where: { id: session.id } }).catch(() => undefined);
     return null;
+  }
+  if (now - session.lastSeenAt.getTime() > TOUCH_INTERVAL_MS) {
+    await prisma.adminSession.update({ where: { id: session.id }, data: { lastSeenAt: new Date(now) } }).catch(() => undefined);
   }
   return { id: session.admin.id, email: session.admin.email, name: session.admin.name, role: session.admin.role, sessionId: session.id };
 }
@@ -70,3 +78,23 @@ export async function logout(token: string | undefined): Promise<void> {
 
 export const SESSION_COOKIE = "sd_admin";
 export const sessionMaxAgeMs = SESSION_TTL_MS;
+
+/** Deletes sessions that are past their lifetime or idle too long. Called on a timer so the table cannot grow forever. */
+export async function purgeDeadSessions(): Promise<number> {
+  const now = Date.now();
+  const res = await prisma.adminSession.deleteMany({
+    where: { OR: [{ expiresAt: { lte: new Date(now) } }, { lastSeenAt: { lt: new Date(now - IDLE_TIMEOUT_MS) } }] },
+  });
+  return res.count;
+}
+
+/** Signs an admin out everywhere (used when their password is reset). */
+export async function revokeAllSessions(adminId: string): Promise<void> {
+  await prisma.adminSession.deleteMany({ where: { adminId } });
+}
+
+export function startSessionPurge(intervalMs = 60 * 60 * 1000): () => void {
+  const timer = setInterval(() => void purgeDeadSessions().catch(() => undefined), intervalMs);
+  timer.unref();
+  return () => clearInterval(timer);
+}
