@@ -112,7 +112,7 @@ export function StorefrontPreview() {
           <span className="h-2.5 w-2.5 rounded-full bg-slate-300" />
           <span className="h-2.5 w-2.5 rounded-full bg-slate-300" />
           <span className="h-2.5 w-2.5 rounded-full bg-slate-300" />
-          <span className="ml-3 h-5 flex-1 rounded-md bg-white text-[11px] leading-5 text-slate-400">&nbsp;searchdistributor.com/distributors/your-company</span>
+          <span className="ml-3 h-5 flex-1 rounded-md bg-white text-[11px] leading-5 text-slate-400">&nbsp;searchdistributor.online/distributors/your-company</span>
         </div>
         <div className="space-y-5 p-5 sm:p-6">
           <m.div {...rise(0)} className="flex items-center gap-4">

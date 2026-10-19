@@ -33,7 +33,7 @@ Coolify → **Project → + New → Database → PostgreSQL 16**.
 | Base Directory | `/` |
 | Dockerfile Location | `/Dockerfile` |
 | Ports Exposes | `3000` |
-| Domains | `https://yourdomain.com` (add `https://www.yourdomain.com` too if you want; the app redirects www to the apex) |
+| Domains | `https://searchdistributor.online` (add `https://www.searchdistributor.online` too if you want; the app redirects www to the apex) |
 | Health Check | leave to the Dockerfile, or path `/healthz` on port `3000` |
 
 The app keeps no files on disk, so it needs no persistent volume. All state is in Postgres.
@@ -45,10 +45,10 @@ Set these under **Environment Variables** (runtime). Mark secrets as such.
 | Variable | Value | Notes |
 |---|---|---|
 | `DATABASE_URL` | the internal Postgres URL + `?schema=public` | required |
-| `SITE_URL` | `https://yourdomain.com` | required; exact public URL, no trailing slash. Drives canonical URLs, the sitemap and the www redirect |
+| `SITE_URL` | `https://searchdistributor.online` | required; exact public URL, no trailing slash. Drives canonical URLs, the sitemap and the www redirect |
 | `SHOW_DEMO_DATA` | `false` | the app refuses to start in production if this is `true` |
 | `SMTP_HOST`, `SMTP_PORT`, `SMTP_USER`, `SMTP_PASS` | your mail provider | without SMTP, enquiry confirmation emails are only logged and **nobody receives them** |
-| `MAIL_FROM` | `Search Distributor <no-reply@yourdomain.com>` | use a domain you've set SPF/DKIM for |
+| `MAIL_FROM` | `Search Distributor <no-reply@searchdistributor.online>` | use a domain you've set SPF/DKIM for |
 | `SUPPORT_EMAIL` | your inbox | receives new leads and requirements to moderate |
 | `SITE_NAME` | optional | |
 | `ENQUIRY_EMAIL_VERIFICATION` | `true` (default) | |
@@ -62,15 +62,15 @@ Click **Deploy** and watch the logs for `All migrations have been successfully a
 Then open the application's **Terminal** in Coolify and run (use your own values; 12+ character password):
 
 ```bash
-ADMIN_EMAIL=you@yourdomain.com ADMIN_NAME="Your Name" ADMIN_PASSWORD='choose-a-long-password' node server/dist/create-admin.js
+ADMIN_EMAIL=you@searchdistributor.online ADMIN_NAME="Your Name" ADMIN_PASSWORD='choose-a-long-password' node server/dist/create-admin.js
 ```
 
-Sign in at `https://yourdomain.com/admin`. The session cookie is `Secure`, so the site must be served over HTTPS (Coolify does this with Let's Encrypt).
+Sign in at `https://searchdistributor.online/admin`. The session cookie is `Secure`, so the site must be served over HTTPS (Coolify does this with Let's Encrypt).
 
 ## 6. After the first deploy
 
 - Visit `/healthz`, `/`, `/distributors`, `/sitemap.xml`, `/robots.txt`.
-- Search Console: add the property and submit `https://yourdomain.com/sitemap.xml`.
+- Search Console: add the property and submit `https://searchdistributor.online/sitemap.xml`.
 - Send a test enquiry and confirm the email arrives.
 - Optional: enable auto-deploy on push (webhook) in the application's settings.
 
