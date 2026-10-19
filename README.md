@@ -28,6 +28,10 @@ Production: `npm run build && NODE_ENV=production npm start` (set `SHOW_DEMO_DAT
 
 Deploying to a VPS (Coolify/Docker): see [docs/DEPLOY.md](docs/DEPLOY.md).
 
+Create an admin (local): `ADMIN_EMAIL=… ADMIN_NAME=… ADMIN_PASSWORD=… npm run admin:create -w server`, then sign in at `/admin`.
+
+Tests: `npm test -w server` (admin tests, no database needed). Add `TEST_DATABASE_URL=<a migrated, disposable Postgres>` to also run the public-eligibility integration tests.
+
 Dev emails: with no `SMTP_HOST`, outgoing mail (enquiry confirmation links) is printed to the server log.
 
 Demo ad creatives (original abstract graphics) are generated with `node scripts/make-demo-ads.mjs` into `client/public/ads/` and referenced by the `isDemo` ad campaigns from `npm run db:fixtures`.
@@ -69,7 +73,7 @@ Also: `GET /requirements`, `GET /requirements/:slug`, `POST /requirements`, `POS
 | Accounts, login, 6-step registration wizard, brand dashboard | **Not built** |
 | Advertising: 4 placements, campaign model, approval/payment/schedule gating, labelled creatives, measured impressions + clicks | Built (serving + measurement) |
 | Advertiser dashboard, self-service booking, ad admin UI, billing | **Not built** (campaigns are created in the database for now) |
-| Admin portal (approvals, payments, subscriptions, audit log, moderation UI) | **Not built** (requirements/listings are approved by changing `status` in the database for now) |
+| Admin back office at `/admin` (sign-in, roles, audit log, dashboard counts, buyer-requirement moderation) | **Built (first slice).** Listings, products, ads, subscriptions and payments are still changed in the database |
 | Testimonials | **Intentionally absent** until real, consented testimonials exist |
 
 ## SEO checklist (from your screenshot)
