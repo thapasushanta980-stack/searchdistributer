@@ -45,6 +45,19 @@ if (env.NODE_ENV === "production" && env.SHOW_DEMO_DATA) {
   process.exit(1);
 }
 
+// Misconfigurations that still boot but quietly break things in production. Printed at start so they show in deploy logs.
+if (env.NODE_ENV === "production") {
+  const site = new URL(env.SITE_URL);
+  const warnings = [
+    site.protocol !== "https:" && `SITE_URL is ${env.SITE_URL}: canonical URLs, the sitemap and email links should use https.`,
+    ["localhost", "127.0.0.1"].includes(site.hostname) && "SITE_URL points at localhost: set it to the public URL.",
+    !env.SMTP_HOST && "SMTP_HOST is not set: enquiry confirmations and notifications are only logged, nobody receives them.",
+    env.MAIL_FROM.includes("@localhost") && "MAIL_FROM uses @localhost: set an address on a domain with SPF/DKIM.",
+    !env.SUPPORT_EMAIL && "SUPPORT_EMAIL is not set: new leads and requirements to moderate are not emailed to anyone.",
+  ].filter(Boolean);
+  for (const w of warnings) console.warn(`[config] WARNING: ${w}`);
+}
+
 const here = path.dirname(fileURLToPath(import.meta.url));
 
 export const config = {

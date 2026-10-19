@@ -5,6 +5,7 @@ import { pinoHttp } from "pino-http";
 import { config } from "./config.js";
 import { logger } from "./logger.js";
 import { prisma } from "./db.js";
+import { cloudflareClientIp } from "./middleware/clientIp.js";
 import { canonicalRedirects } from "./middleware/redirects.js";
 import { errorHandler, notFoundApi } from "./middleware/common.js";
 import { admin } from "./routes/admin.js";
@@ -16,6 +17,7 @@ export async function createApp(): Promise<Express> {
   const app = express();
   app.disable("x-powered-by");
   if (config.isProd) app.set("trust proxy", 1);
+  app.use(cloudflareClientIp);
 
   app.use(
     helmet({
