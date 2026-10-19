@@ -26,6 +26,8 @@ npm run dev                     # http://localhost:3000
 
 Production: `npm run build && NODE_ENV=production npm start` (set `SHOW_DEMO_DATA=false`; the server refuses to start otherwise).
 
+Deploying to a VPS (Coolify/Docker): see [docs/DEPLOY.md](docs/DEPLOY.md).
+
 Dev emails: with no `SMTP_HOST`, outgoing mail (enquiry confirmation links) is printed to the server log.
 
 Demo ad creatives (original abstract graphics) are generated with `node scripts/make-demo-ads.mjs` into `client/public/ads/` and referenced by the `isDemo` ad campaigns from `npm run db:fixtures`.

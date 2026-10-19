@@ -1,7 +1,8 @@
 import { defineConfig } from "tsup";
 
 export default defineConfig({
-  entry: ["src/index.ts"],
+  // Flat output names: the server, plus one-off ops scripts that must run in the production image (no tsx there).
+  entry: { index: "src/index.ts", "create-admin": "prisma/create-admin.ts", seed: "prisma/seed.ts" },
   format: ["esm"],
   target: "node22",
   outDir: "dist",
