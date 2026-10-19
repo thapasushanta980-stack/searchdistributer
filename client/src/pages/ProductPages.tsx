@@ -7,10 +7,12 @@ import { CompanyLogo, VerificationBadge } from "@/components/distributors/bits";
 import { Pagination } from "@/components/distributors/states";
 import { LazyEnquiryDialog, preloadEnquiryDialog, type EnquiryTarget } from "@/components/forms/lazy";
 import { Breadcrumbs } from "@/components/layout/Layout";
+import { WhatsAppButton } from "@/components/distributors/WhatsAppButton";
 import { Button } from "@/components/ui/button";
 import { Input, Select } from "@/components/ui/form";
 import { Skeleton } from "@/components/ui/misc";
 import { useApi, useSite } from "@/lib/context";
+import { useTrackSearch, useTrackView } from "@/lib/track";
 import { usePreloadWhenIdle } from "@/lib/lazyClient";
 import { categoriesQuery, productQuery, productsQuery } from "@/lib/queries";
 import { PageHead } from "@/seo/head";
@@ -48,7 +50,11 @@ export function ProductsPage() {
   const [sp, setSp] = useSearchParams();
   const params = parseProductSearch(sp);
   const { data: categories = [] } = useQuery(categoriesQuery(api));
-  const { data, isPending, isError, refetch } = useQuery(productsQuery(api, params));
+  const { data, isPending, isError, refetch, isFetching } = useQuery(productsQuery(api, params));
+  useTrackSearch(
+    data && params.page === 1 ? { type: "SEARCH", scope: "products", query: params.keyword, categorySlug: params.category, resultCount: data.pagination.total } : null,
+    !!data && !isFetching,
+  );
   const [kw, setKw] = useState(params.keyword ?? "");
   const [cat, setCat] = useState(params.category ?? "");
   const key = sp.toString();
@@ -160,6 +166,7 @@ export function ProductDetailPage() {
   const api = useApi();
   const site = useSite();
   const { data: p, isPending, isError, refetch } = useQuery(productQuery(api, slug));
+  useTrackView(p ? { type: "PRODUCT_VIEW", productId: p.id, distributorId: p.distributor.id, categorySlug: p.category?.slug ?? p.distributor.category?.slug } : null);
   const [target, setTarget] = useState<EnquiryTarget | null>(null);
   usePreloadWhenIdle(preloadEnquiryDialog);
 
@@ -245,6 +252,7 @@ export function ProductDetailPage() {
               <Button size="lg" onClick={enquire}>
                 <Send className="h-4 w-4" aria-hidden /> Send Enquiry
               </Button>
+              {d.hasWhatsapp && <WhatsAppButton slug={d.slug} productSlug={p.publicSlug} />}
               <Button asChild size="lg" variant="secondary">
                 <Link to={`/distributors/${d.slug}`}>View Brand</Link>
               </Button>
@@ -275,9 +283,13 @@ export function ProductDetailPage() {
       </div>
 
       <div className="fixed inset-x-0 bottom-0 z-30 flex gap-2 border-t border-line bg-white/95 p-3 pb-[max(0.75rem,env(safe-area-inset-bottom))] backdrop-blur sm:hidden">
-        <Button asChild variant="secondary" size="lg">
-          <Link to={`/distributors/${d.slug}`}>View Brand</Link>
-        </Button>
+        {d.hasWhatsapp ? (
+          <WhatsAppButton slug={d.slug} productSlug={p.publicSlug} label="WhatsApp" className="flex-1 px-3" />
+        ) : (
+          <Button asChild variant="secondary" size="lg">
+            <Link to={`/distributors/${d.slug}`}>View Brand</Link>
+          </Button>
+        )}
         <Button size="lg" className="flex-1" onClick={enquire}>
           <Send className="h-4 w-4" aria-hidden /> Send Enquiry
         </Button>

@@ -21,6 +21,7 @@ seoRoutes.get("/robots.txt", (_req, res) => {
     "Disallow: /admin",
     "Disallow: /dashboard",
     "Disallow: /enquiries/",
+    "Disallow: /go/",
     "",
     `Sitemap: ${config.siteUrl}/sitemap.xml`,
     "",

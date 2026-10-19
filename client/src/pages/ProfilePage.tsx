@@ -7,9 +7,11 @@ import { CompanyLogo, VerificationBadge } from "@/components/distributors/bits";
 import { Breadcrumbs } from "@/components/layout/Layout";
 import { LazyEnquiryDialog, preloadEnquiryDialog, type EnquiryTarget } from "@/components/forms/lazy";
 import { usePreloadWhenIdle } from "@/lib/lazyClient";
+import { WhatsAppButton } from "@/components/distributors/WhatsAppButton";
 import { Button } from "@/components/ui/button";
 import { Badge, Skeleton } from "@/components/ui/misc";
 import { useApi, useSite } from "@/lib/context";
+import { useTrackView } from "@/lib/track";
 import { distributorQuery } from "@/lib/queries";
 import { cn, formatInvestment } from "@/lib/utils";
 import { PageHead } from "@/seo/head";
@@ -86,6 +88,7 @@ export function ProfilePage() {
   const api = useApi();
   const site = useSite();
   const { data: d, isPending, isError, refetch } = useQuery(distributorQuery(api, slug));
+  useTrackView(d ? { type: "LISTING_VIEW", distributorId: d.id, categorySlug: d.category?.slug } : null);
   const [target, setTarget] = useState<EnquiryTarget | null>(null);
   usePreloadWhenIdle(preloadEnquiryDialog);
   const [showBar, setShowBar] = useState(false);
@@ -249,6 +252,7 @@ export function ProfilePage() {
             <Button size="lg" className="mt-4 w-full" onClick={enquire}>
               <Send className="h-4 w-4" aria-hidden /> Send Enquiry
             </Button>
+            {d.hasWhatsapp && <WhatsAppButton slug={d.slug} className="mt-2 w-full" />}
           </div>
         </div>
       </div>
@@ -401,6 +405,7 @@ export function ProfilePage() {
               <Button size="lg" className="mt-5 w-full" onClick={enquire}>
                 <Send className="h-4 w-4" aria-hidden /> Send Enquiry
               </Button>
+              {d.hasWhatsapp && <WhatsAppButton slug={d.slug} className="mt-2 w-full" />}
               <p className="mt-3 text-xs leading-relaxed text-muted">Contact details are shared only when you send an enquiry. An enquiry is not an order or a guarantee of a reply.</p>
             </div>
             {d.category && (
@@ -423,6 +428,7 @@ export function ProfilePage() {
             <Button size="lg" className="mt-5 w-full" onClick={enquire}>
               Send Enquiry <ArrowRight className="h-4 w-4 transition-transform group-hover:translate-x-0.5" aria-hidden />
             </Button>
+            {d.hasWhatsapp && <WhatsAppButton slug={d.slug} className="mt-2 w-full" />}
             <p className="mt-3 text-xs text-muted">An enquiry is not an order or a guarantee of a reply.</p>
           </div>
           </div>
@@ -444,9 +450,12 @@ export function ProfilePage() {
 
       {/* Sticky mobile CTA: reserved space above (pb-28) keeps it from covering content. */}
       <div className={cn("fixed inset-x-0 bottom-0 z-30 border-t border-line bg-white/95 p-3 pb-[max(0.75rem,env(safe-area-inset-bottom))] backdrop-blur transition-transform duration-200 sm:hidden", showBar ? "translate-y-0" : "translate-y-full")} aria-hidden={!showBar}>
-        <Button size="lg" className="w-full" onClick={enquire}>
-          <Send className="h-4 w-4" aria-hidden /> Send Enquiry
-        </Button>
+        <div className="flex gap-2">
+          {d.hasWhatsapp && <WhatsAppButton slug={d.slug} label="WhatsApp" className="flex-1 px-3" />}
+          <Button size="lg" className="flex-1" onClick={enquire}>
+            <Send className="h-4 w-4" aria-hidden /> Send Enquiry
+          </Button>
+        </div>
       </div>
 
       <LazyEnquiryDialog target={target} onClose={() => setTarget(null)} />

@@ -30,6 +30,18 @@ const schema = z.object({
   SITE_EDITOR_NAME: z.preprocess(blank, z.string().optional()),
   SITE_EDITOR_ROLE: z.preprocess(blank, z.string().optional()),
   SITE_EDITOR_BIO: z.preprocess(blank, z.string().optional()),
+  /** IANA timezone for analytics days and peak hours. */
+  SITE_TIMEZONE: z
+    .string()
+    .default("Asia/Kathmandu")
+    .refine((tz) => {
+      try {
+        new Intl.DateTimeFormat("en", { timeZone: tz });
+        return true;
+      } catch {
+        return false;
+      }
+    }, "Unknown timezone"),
 });
 
 const parsed = schema.safeParse(process.env);

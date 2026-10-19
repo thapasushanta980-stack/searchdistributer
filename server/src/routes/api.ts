@@ -1,9 +1,21 @@
 import { Router } from "express";
 import { z } from "zod";
-import { AD_PLACEMENTS, distributorSearchSchema, enquiryInputSchema, leadInputSchema, parseProductSearch, parseRequirementSearch, requirementInputSchema, requirementResponseSchema } from "@sd/shared";
+import {
+  AD_PLACEMENTS,
+  distributorSearchSchema,
+  enquiryInputSchema,
+  leadInputSchema,
+  parseProductSearch,
+  parseRequirementSearch,
+  requirementInputSchema,
+  requirementResponseSchema,
+  trackEventSchema,
+} from "@sd/shared";
+import { prisma } from "../db.js";
 import { notFound } from "../lib/errors.js";
 import { adEventLimiter, ah, apiLimiter, parseOrThrow, verifyLimiter, writeLimiter } from "../middleware/common.js";
 import { listActiveAds, recordClick, recordImpression } from "../modules/ads/service.js";
+import { recordEvent } from "../modules/analytics/service.js";
 import { getCategoryTree } from "../modules/categories/service.js";
 import { getDistributorBySlug, getFacets, getFeatured, searchDistributors, suggest } from "../modules/distributors/service.js";
 import { resendVerification, submitEnquiry, verifyEnquiry } from "../modules/enquiries/service.js";
@@ -150,7 +162,9 @@ api.post(
   "/requirements",
   writeLimiter,
   ah(async (req, res) => {
-    res.status(201).json(await submitRequirement(parseOrThrow(requirementInputSchema, req.body)));
+    const input = parseOrThrow(requirementInputSchema, req.body);
+    res.status(201).json(await submitRequirement(input));
+    recordEvent(req, { type: "REQUIREMENT", categorySlug: input.categorySlug ?? null });
   }),
 );
 
@@ -170,6 +184,8 @@ api.post(
   ah(async (req, res) => {
     const input = parseOrThrow(enquiryInputSchema, req.body);
     res.status(201).json(await submitEnquiry(input));
+    const d = await prisma.distributor.findUnique({ where: { slug: input.distributorSlug }, select: { id: true, category: { select: { slug: true } } } });
+    if (d) recordEvent(req, { type: "ENQUIRY", distributorId: d.id, categorySlug: d.category?.slug ?? null });
   }),
 );
 
@@ -201,5 +217,32 @@ api.post(
   ah(async (req, res) => {
     const input = parseOrThrow(leadInputSchema, req.body);
     res.status(201).json(await submitLead(input));
+    if (!input.website) recordEvent(req, { type: "LEAD", categorySlug: input.categorySlug ?? null });
+  }),
+);
+
+/**
+ * Usage events from the browser (searches and page views). Always answers 204 so a beacon never retries or errors;
+ * invalid or bot events are simply dropped.
+ */
+api.post(
+  "/events",
+  adEventLimiter,
+  ah(async (req, res) => {
+    const parsed = trackEventSchema.safeParse(req.body);
+    if (parsed.success) {
+      const e = parsed.data;
+      recordEvent(req, {
+        type: e.type,
+        scope: e.type === "SEARCH" ? e.scope : null,
+        query: e.type === "SEARCH" ? e.query : null,
+        location: e.type === "SEARCH" ? e.location : null,
+        resultCount: e.type === "SEARCH" ? e.resultCount : null,
+        categorySlug: e.categorySlug ?? null,
+        distributorId: "distributorId" in e ? e.distributorId : null,
+        productId: "productId" in e ? e.productId : null,
+      });
+    }
+    res.status(204).end();
   }),
 );

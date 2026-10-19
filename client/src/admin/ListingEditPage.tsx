@@ -59,6 +59,7 @@ interface FormState {
   website: string;
   logoUrl: string;
   contactPerson: string;
+  whatsappNumber: string;
   notificationEmail: string;
   foundedYear: string;
   distributorshipInfo: string;
@@ -88,6 +89,7 @@ const blank: FormState = {
   website: "",
   logoUrl: "",
   contactPerson: "",
+  whatsappNumber: "",
   notificationEmail: "",
   foundedYear: "",
   distributorshipInfo: "",
@@ -117,6 +119,7 @@ const fromListing = (l: AdminListingDTO): FormState => ({
   website: l.website ?? "",
   logoUrl: l.logoUrl ?? "",
   contactPerson: l.contactPerson ?? "",
+  whatsappNumber: l.whatsappNumber ?? "",
   notificationEmail: l.notificationEmail ?? "",
   foundedYear: l.foundedYear ? String(l.foundedYear) : "",
   distributorshipInfo: l.distributorshipInfo ?? "",
@@ -138,6 +141,7 @@ const fromLead = (lead: AdminLeadDTO, categories: CategoryDTO[]): FormState => {
     ...blank,
     name: lead.companyName ?? lead.name,
     contactPerson: lead.name,
+    whatsappNumber: lead.phone ?? "",
     notificationEmail: lead.email,
     location: lead.location ?? "",
     categoryId: cat?.id ?? "",
@@ -162,6 +166,7 @@ const toInput = (f: FormState, fromLeadId?: string): AdminListingInput => ({
   website: f.website || null,
   logoUrl: f.logoUrl || null,
   contactPerson: f.contactPerson || null,
+  whatsappNumber: f.whatsappNumber || null,
   notificationEmail: f.notificationEmail || null,
   foundedYear: num(f.foundedYear),
   distributorshipInfo: f.distributorshipInfo || null,
@@ -307,6 +312,9 @@ export function ListingEditPage() {
         <Section title="Contact" description="Enquiries are emailed to the notification email. It is never shown publicly.">
           <Field label="Contact person" error={err("contactPerson")}>
             {(fid) => <TextInput id={fid} value={form.contactPerson} onChange={(e) => set("contactPerson", e.target.value)} maxLength={120} />}
+          </Field>
+          <Field label="WhatsApp number" hint="With country code, e.g. +977 98XXXXXXXX. Shows a tracked WhatsApp button on the listing; the number itself is never printed on the site." error={err("whatsappNumber")}>
+            {(fid) => <TextInput id={fid} type="tel" value={form.whatsappNumber} onChange={(e) => set("whatsappNumber", e.target.value)} maxLength={24} placeholder="+977" />}
           </Field>
           <Field label="Notification email" error={err("notificationEmail")}>
             {(fid) => <TextInput id={fid} type="email" value={form.notificationEmail} onChange={(e) => set("notificationEmail", e.target.value)} maxLength={200} />}

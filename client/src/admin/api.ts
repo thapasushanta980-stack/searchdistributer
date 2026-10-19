@@ -18,6 +18,8 @@ import type {
   AdminRequirementDTO,
   AdminRequirementResponseDTO,
   AdminStatsDTO,
+  AnalyticsDTO,
+  AnalyticsRange,
   ApiErrorBody,
   CategoryDTO,
   ModerationDecision,
@@ -106,6 +108,7 @@ export const adminApi = {
   adAction: (id: string, body: AdminAdAction) => request<{ data: AdminAdDTO }>(`/ads/${id}/action`, { method: "POST", body }).then((r) => r.data),
   deleteAd: (id: string) => request<void>(`/ads/${id}`, { method: "DELETE" }),
 
+  analytics: (range: AnalyticsRange) => request<{ data: AnalyticsDTO }>(`/analytics?range=${range}`).then((r) => r.data),
   audit: (query: string) => request<{ data: AdminAuditDTO[]; total: number }>(`/audit-log${query}`),
   /** Public category tree (same origin, no auth needed), used by the listing and product pickers. */
   categories: async (): Promise<CategoryDTO[]> => {

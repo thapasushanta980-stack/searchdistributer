@@ -112,7 +112,8 @@ export function LeadForm({ type }: { type: LeadType }) {
             {({ id, describedBy, invalid }) => <Input id={id} autoComplete="organization" aria-invalid={invalid} aria-describedby={describedBy} {...register("companyName")} />}
           </Field>
         )}
-        <Field label="Phone" optional error={errors.phone?.message}>
+        {/* Registrations need a number: the team calls every business before listing it (WhatsApp preferred). */}
+        <Field label={type === "BUSINESS_REGISTRATION" ? "Phone (WhatsApp preferred)" : "Phone"} optional={type !== "BUSINESS_REGISTRATION"} error={errors.phone?.message}>
           {({ id, describedBy, invalid }) => <Input id={id} type="tel" autoComplete="tel" aria-invalid={invalid} aria-describedby={describedBy} {...register("phone")} />}
         </Field>
         {copy.showCategory && (

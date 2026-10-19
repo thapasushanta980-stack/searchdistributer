@@ -188,6 +188,8 @@ model Distributor {
   businessType       BusinessType       @default(DISTRIBUTOR)
   website            String?
   contactPerson      String?
+  /// WhatsApp number in international form (+977…). Never printed in pages: visitors reach it through the tracked /go/whatsapp redirect.
+  whatsappNumber     String?            @db.VarChar(24)
   foundedYear        Int?
   specialties        String[]           @default([])
   distributorshipInfo String?
@@ -467,4 +469,42 @@ model AuditLog {
   @@index([adminId, createdAt])
   @@index([createdAt])
   @@map("audit_logs")
+}
+
+enum AnalyticsEventType {
+  SEARCH
+  CATEGORY_VIEW
+  LISTING_VIEW
+  PRODUCT_VIEW
+  WHATSAPP_CLICK
+  ENQUIRY
+  REQUIREMENT
+  LEAD
+}
+
+/// Anonymous usage events for the admin analytics. No IP address or cookie is stored:
+/// `visitor` is a hash that changes every day, so it counts unique visitors per day and can't follow anyone.
+model AnalyticsEvent {
+  id            String             @id @default(uuid())
+  type          AnalyticsEventType
+  visitor       String             @db.VarChar(16)
+  /// Which search box: distributors, brands, products or leads.
+  scope         String?            @db.VarChar(20)
+  /// Normalised (lower-case, trimmed) search keyword.
+  query         String?            @db.VarChar(80)
+  location      String?            @db.VarChar(80)
+  /// Most specific category involved (a subcategory when one was chosen).
+  categorySlug  String?            @db.VarChar(80)
+  resultCount   Int?
+  /// No foreign keys: history outlives deleted listings and products.
+  distributorId String?
+  productId     String?
+  country       String?            @db.VarChar(2)
+  device        String?            @db.VarChar(8)
+  createdAt     DateTime           @default(now())
+
+  @@index([type, createdAt])
+  @@index([createdAt])
+  @@index([distributorId, type])
+  @@map("analytics_events")
 }

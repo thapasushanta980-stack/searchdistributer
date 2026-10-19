@@ -147,6 +147,11 @@ export function LegalPage({ kind }: { kind: "terms" | "privacy" | "cookies" }) {
         <p>
           The {label.toLowerCase()} is being finalised and will be published here before the marketplace opens to the public. It will cover how enquiry details are shared, how long records are kept and how to request their deletion.
         </p>
+        {kind !== "terms" && (
+          <p className="mt-3">
+            What we do today: we count page views, searches and contact clicks anonymously to improve the marketplace. We set no tracking cookies and store no IP addresses; visits are counted with a code that changes every day, and the records are deleted after about 13 months. Choosing &ldquo;Chat on WhatsApp&rdquo; opens WhatsApp, where WhatsApp&rsquo;s own privacy policy applies.
+          </p>
+        )}
         <p className="mt-3">
           Questions in the meantime? <Link to="/contact" className="font-medium text-primary hover:underline">Contact us</Link>.
         </p>

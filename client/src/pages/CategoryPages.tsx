@@ -7,6 +7,7 @@ import { CtaSection } from "@/components/distributors/Hero";
 import { ResultsSection } from "@/components/distributors/ResultsSection";
 import { Skeleton } from "@/components/ui/misc";
 import { useApi, useSite } from "@/lib/context";
+import { useTrackView } from "@/lib/track";
 import { categoriesQuery, distributorsQuery } from "@/lib/queries";
 import { useSearchState } from "@/lib/useSearchState";
 import { PageHead } from "@/seo/head";
@@ -94,6 +95,7 @@ export function CategoryPage() {
   const { params } = useSearchState();
   const { data: tree = [], isPending } = useQuery(categoriesQuery(api));
   const found = findCategory(tree, slug);
+  useTrackView(found ? { type: "CATEGORY_VIEW", categorySlug: found.category.slug } : null);
   const { data: list } = useQuery({ ...distributorsQuery(api, { ...params, category: [slug] }), enabled: !!found });
 
   if (!found) {

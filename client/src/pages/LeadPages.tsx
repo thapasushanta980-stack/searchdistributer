@@ -12,6 +12,7 @@ import { Button } from "@/components/ui/button";
 import { Input, Select } from "@/components/ui/form";
 import { Skeleton } from "@/components/ui/misc";
 import { useApi, useSite } from "@/lib/context";
+import { useTrackSearch } from "@/lib/track";
 import { usePreloadWhenIdle } from "@/lib/lazyClient";
 import { categoriesQuery, requirementQuery, requirementsQuery } from "@/lib/queries";
 import { useHydrated } from "@/lib/useSearchState";
@@ -27,7 +28,11 @@ export function LeadsPage() {
   const [sp, setSp] = useSearchParams();
   const params = parseRequirementSearch(sp);
   const { data: categories = [] } = useQuery(categoriesQuery(api));
-  const { data, isPending, isError, refetch } = useQuery(requirementsQuery(api, params));
+  const { data, isPending, isError, refetch, isFetching } = useQuery(requirementsQuery(api, params));
+  useTrackSearch(
+    data && params.page === 1 ? { type: "SEARCH", scope: "leads", query: params.keyword, location: params.location, categorySlug: params.category, resultCount: data.pagination.total } : null,
+    !!data && !isFetching,
+  );
 
   const [draft, setDraft] = useState({ keyword: params.keyword ?? "", location: params.location ?? "", category: params.category ?? "", kind: params.kind ?? "", budgetMin: params.budgetMin ? String(params.budgetMin) : "" });
   const key = sp.toString();

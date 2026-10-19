@@ -24,6 +24,7 @@ export function toCard(d: WithCategory, featuredNow = false, productCount = 0, p
     investmentCurrency: d.investmentCurrency,
     productCount,
     productPreview,
+    hasWhatsapp: !!d.whatsappNumber,
     createdAt: d.createdAt.toISOString(),
   };
 }

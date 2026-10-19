@@ -8,6 +8,7 @@ import { Button } from "@/components/ui/button";
 import { OverlayDialog } from "@/components/ui/dialog";
 import { Select } from "@/components/ui/form";
 import { useApi } from "@/lib/context";
+import { useTrackSearch } from "@/lib/track";
 import { categoriesQuery, distributorsQuery, facetsQuery, featuredQuery } from "@/lib/queries";
 import { usePreloadWhenIdle } from "@/lib/lazyClient";
 import { countActiveFilters, useHydrated, useSearchState } from "@/lib/useSearchState";
@@ -50,6 +51,14 @@ export function ResultsSection({ lockedCategory, lockedBusinessType, basePath, s
   );
 
   const results = useQuery(distributorsQuery(api, effective));
+  // A category landing page is a category view, not a search: only a chosen subcategory or another category counts here.
+  const searchedCategory = effective.subcategory[0] ?? effective.category.find((c) => c !== lockedCategory);
+  useTrackSearch(
+    results.data && effective.page === 1
+      ? { type: "SEARCH", scope: lockedBusinessType === "MANUFACTURER" ? "brands" : "distributors", query: effective.keyword, location: effective.location, categorySlug: searchedCategory, resultCount: results.data.pagination.total }
+      : null,
+    !!results.data && !results.isPlaceholderData && !results.isFetching,
+  );
   const noun = lockedBusinessType === "MANUFACTURER" ? { one: "brand", many: "brands" } : { one: "distributor", many: "distributors" };
   const { data: categories = [] } = useQuery(categoriesQuery(api));
   const { data: facets } = useQuery(facetsQuery(api));

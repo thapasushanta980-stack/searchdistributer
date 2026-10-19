@@ -1,5 +1,5 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { Building2, ClipboardList, History, Inbox, LayoutDashboard, LogOut, Mail, Megaphone, ShieldCheck } from "lucide-react";
+import { BarChart3, Building2, ClipboardList, History, Inbox, LayoutDashboard, LogOut, Mail, Megaphone, ShieldCheck } from "lucide-react";
 import { useState, type FormEvent } from "react";
 import { NavLink, Navigate, Route, Routes } from "react-router-dom";
 import type { AdminMeDTO } from "@sd/shared";
@@ -7,6 +7,7 @@ import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 import { AdminApiError, ME_KEY, adminApi } from "./api";
 import { ActivityPage } from "./ActivityPage";
+import { AnalyticsPage } from "./AnalyticsPage";
 import { AdEditPage, AdsPage } from "./AdsPage";
 import { DashboardPage } from "./DashboardPage";
 import { EnquiriesPage } from "./EnquiriesPage";
@@ -80,6 +81,7 @@ function LoginPage() {
 
 const nav = [
   { to: "/", label: "Dashboard", icon: LayoutDashboard, end: true },
+  { to: "/analytics", label: "Analytics", icon: BarChart3, end: false },
   { to: "/leads", label: "Leads", icon: Inbox, end: false },
   { to: "/enquiries", label: "Enquiries", icon: Mail, end: false },
   { to: "/requirements", label: "Requirements", icon: ClipboardList, end: false },
@@ -136,6 +138,7 @@ function Shell({ admin }: { admin: AdminMeDTO }) {
         <main className="mx-auto max-w-5xl px-4 py-5 sm:px-5 sm:py-8">
           <Routes>
             <Route index element={<DashboardPage />} />
+            <Route path="analytics" element={<AnalyticsPage />} />
             <Route path="leads" element={<LeadsPage />} />
             <Route path="enquiries" element={<EnquiriesPage />} />
             <Route path="requirements" element={<RequirementsPage />} />

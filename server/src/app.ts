@@ -9,6 +9,7 @@ import { cloudflareClientIp } from "./middleware/clientIp.js";
 import { canonicalRedirects } from "./middleware/redirects.js";
 import { errorHandler, notFoundApi } from "./middleware/common.js";
 import { admin } from "./routes/admin.js";
+import { goRoutes } from "./routes/go.js";
 import { api } from "./routes/api.js";
 import { seoRoutes } from "./routes/seo.js";
 import { mountSsr } from "./ssr.js";
@@ -56,6 +57,7 @@ export async function createApp(): Promise<Express> {
 
   app.use(canonicalRedirects);
   app.use(seoRoutes);
+  app.use(goRoutes);
   app.use("/api/v1", express.json({ limit: "32kb" }), api);
   app.use("/api/admin/v1", express.json({ limit: "32kb" }), admin);
   app.use("/api", notFoundApi);

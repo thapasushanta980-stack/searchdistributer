@@ -29,6 +29,7 @@ import { actOnAd, createAd, deleteAd, getAd, listAds, updateAd } from "../module
 import { deleteEnquiry, deleteLead, deleteRequirement, getLead, listEnquiries, listLeads, listRequirementResponses, setRequirementStatus, updateEnquiry, updateLead } from "../modules/admin/inbox.js";
 import { actOnListing, createListing, createProduct, deleteListing, deleteProduct, getListing, listListings, updateListing, updateProduct } from "../modules/admin/listings.js";
 import { decideRequirement, getStats, listAudit, listRequirements } from "../modules/admin/service.js";
+import { getAnalytics } from "../modules/analytics/service.js";
 
 export const admin = Router();
 
@@ -211,3 +212,12 @@ admin.get("/ads/:id", ah(async (req, res) => void res.json({ data: await getAd(u
 admin.put("/ads/:id", canChange, ah(async (req, res) => void res.json({ data: await updateAd(uuidParam(req), parseOrThrow(adminAdInputSchema, req.body), actor(req)) })));
 admin.post("/ads/:id/action", canChange, ah(async (req, res) => void res.json({ data: await actOnAd(uuidParam(req), parseOrThrow(adminAdActionSchema, req.body), actor(req)) })));
 admin.delete("/ads/:id", canDelete, ah(async (req, res) => void (await deleteAd(uuidParam(req), actor(req)), res.status(204).end())));
+
+// Analytics
+admin.get(
+  "/analytics",
+  ah(async (req, res) => {
+    const { range } = parseOrThrow(z.object({ range: z.enum(["7", "30", "90"]).default("30").transform((v) => Number(v) as 7 | 30 | 90) }), req.query);
+    res.json({ data: await getAnalytics(range) });
+  }),
+);

@@ -164,41 +164,47 @@ export const enquiryInputSchema = z.object({
 });
 export type EnquiryInput = z.input<typeof enquiryInputSchema>;
 
-export const leadInputSchema = z.object({
-  type: z.enum(LEAD_TYPES),
-  name: z.string().trim().min(2, "Enter your name").max(100),
-  companyName: z
-    .string()
-    .trim()
-    .max(160)
-    .optional()
-    .transform((v) => v || undefined),
-  email: z.string().trim().toLowerCase().email("Enter a valid email address").max(200),
-  phone: z
-    .string()
-    .trim()
-    .max(24)
-    .refine((v) => v === "" || phoneRegex.test(v), "Enter a valid phone number")
-    .optional()
-    .transform((v) => v || undefined),
-  categorySlug: z
-    .string()
-    .regex(/^[a-z0-9-]+$/)
-    .max(80)
-    .optional()
-    .or(z.literal("").transform(() => undefined)),
-  location: z
-    .string()
-    .trim()
-    .max(120)
-    .optional()
-    .transform((v) => v || undefined),
-  message: z.string().trim().min(10, "Please write at least 10 characters").max(3000),
-  consent: z.literal(true, { errorMap: () => ({ message: "Consent is required" }) }),
-  idempotencyKey: z.string().uuid(),
-  /** Honeypot: real users never fill this in. */
-  website: z.string().max(0).optional(),
-});
+export const leadInputSchema = z
+  .object({
+    type: z.enum(LEAD_TYPES),
+    name: z.string().trim().min(2, "Enter your name").max(100),
+    companyName: z
+      .string()
+      .trim()
+      .max(160)
+      .optional()
+      .transform((v) => v || undefined),
+    email: z.string().trim().toLowerCase().email("Enter a valid email address").max(200),
+    phone: z
+      .string()
+      .trim()
+      .max(24)
+      .refine((v) => v === "" || phoneRegex.test(v), "Enter a valid phone number")
+      .optional()
+      .transform((v) => v || undefined),
+    categorySlug: z
+      .string()
+      .regex(/^[a-z0-9-]+$/)
+      .max(80)
+      .optional()
+      .or(z.literal("").transform(() => undefined)),
+    location: z
+      .string()
+      .trim()
+      .max(120)
+      .optional()
+      .transform((v) => v || undefined),
+    message: z.string().trim().min(10, "Please write at least 10 characters").max(3000),
+    consent: z.literal(true, { errorMap: () => ({ message: "Consent is required" }) }),
+    idempotencyKey: z.string().uuid(),
+    /** Honeypot: real users never fill this in. */
+    website: z.string().max(0).optional(),
+  })
+  .superRefine((v, ctx) => {
+    if (v.type === "BUSINESS_REGISTRATION" && !v.phone) {
+      ctx.addIssue({ code: z.ZodIssueCode.custom, path: ["phone"], message: "Enter a phone number so we can reach you" });
+    }
+  });
 export type LeadInput = z.input<typeof leadInputSchema>;
 
 /* ------------------------------------------------------------------ */
@@ -237,6 +243,8 @@ export interface DistributorCardDTO {
   productCount: number;
   /** Up to three published product names, for card previews. */
   productPreview: string[];
+  /** A WhatsApp chat is available through /go/whatsapp/:slug. */
+  hasWhatsapp: boolean;
   createdAt: string;
 }
 
@@ -855,6 +863,10 @@ export const adminListingInputSchema = z
     website: optHttpsUrl,
     logoUrl: optHttpsUrl,
     contactPerson: optText(120),
+    whatsappNumber: z
+      .union([z.string().trim().regex(phoneRegex, "Enter a valid WhatsApp number, e.g. +977 98XXXXXXXX"), z.literal(""), z.null()])
+      .optional()
+      .transform((v) => (v ? v : null)),
     notificationEmail: z
       .union([z.string().trim().email("Enter a valid email").max(200), z.literal(""), z.null()])
       .optional()
@@ -959,4 +971,65 @@ export type AdminAdAction = z.output<typeof adminAdActionSchema>;
 export interface AdminPage<T> {
   data: T[];
   pagination: PaginationDTO;
+}
+
+/* ------------------------------------------------------------------ */
+/* Analytics                                                           */
+/* ------------------------------------------------------------------ */
+
+export const SEARCH_SCOPES = ["distributors", "brands", "products", "leads"] as const;
+export type SearchScope = (typeof SEARCH_SCOPES)[number];
+
+/** Events the browser may report. Contacts (WhatsApp, enquiries, forms) are recorded by the server itself. */
+export const trackEventSchema = z.discriminatedUnion("type", [
+  z.object({
+    type: z.literal("SEARCH"),
+    scope: z.enum(SEARCH_SCOPES),
+    query: z.string().trim().max(200).optional(),
+    location: z.string().trim().max(200).optional(),
+    categorySlug: z.string().regex(/^[a-z0-9-]+$/).max(80).optional(),
+    resultCount: z.number().int().min(0).max(1_000_000),
+  }),
+  z.object({ type: z.literal("CATEGORY_VIEW"), categorySlug: z.string().regex(/^[a-z0-9-]+$/).max(80) }),
+  z.object({ type: z.literal("LISTING_VIEW"), distributorId: z.string().uuid(), categorySlug: z.string().regex(/^[a-z0-9-]+$/).max(80).optional() }),
+  z.object({ type: z.literal("PRODUCT_VIEW"), productId: z.string().uuid(), distributorId: z.string().uuid(), categorySlug: z.string().regex(/^[a-z0-9-]+$/).max(80).optional() }),
+]);
+export type TrackEvent = z.input<typeof trackEventSchema>;
+
+export const ANALYTICS_RANGES = [7, 30, 90] as const;
+export type AnalyticsRange = (typeof ANALYTICS_RANGES)[number];
+
+export interface AnalyticsKpi {
+  current: number;
+  previous: number;
+}
+
+export interface AnalyticsDTO {
+  range: AnalyticsRange;
+  timezone: string;
+  kpis: {
+    visitors: AnalyticsKpi;
+    searches: AnalyticsKpi;
+    /** Searches that returned nothing, as a share of all searches (0..1). */
+    zeroResultRate: AnalyticsKpi;
+    listingViews: AnalyticsKpi;
+    whatsappClicks: AnalyticsKpi;
+    enquiries: AnalyticsKpi;
+    /** (WhatsApp clicks + enquiries) / listing views (0..1). */
+    contactRate: AnalyticsKpi;
+    newLeads: AnalyticsKpi;
+  };
+  /** One row per day in the site's timezone, oldest first, including empty days. */
+  daily: Array<{ date: string; visitors: number; searches: number; listingViews: number; contacts: number }>;
+  /** Activity by weekday (0 = Sunday) and hour, in the site's timezone. */
+  heatmap: Array<{ dow: number; hour: number; count: number }>;
+  topSearches: Array<{ query: string; count: number; avgResults: number; zeroResults: number }>;
+  /** Searched for, never found: who to recruit next. */
+  unmetSearches: Array<{ query: string; location: string | null; count: number; lastAt: string }>;
+  topLocations: Array<{ location: string; count: number }>;
+  /** Demand (searches + category views + listing views) against supply (listings on the site). */
+  categories: Array<{ slug: string; name: string; parentName: string | null; searches: number; views: number; contacts: number; liveListings: number }>;
+  topListings: Array<{ id: string; name: string; slug: string | null; views: number; whatsapp: number; enquiries: number }>;
+  devices: Array<{ device: string; count: number }>;
+  countries: Array<{ country: string; count: number }>;
 }
