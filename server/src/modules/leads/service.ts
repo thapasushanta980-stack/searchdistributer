@@ -42,7 +42,7 @@ export async function submitLead(input: LeadInput): Promise<LeadResponse> {
             type: created.type,
             reference: created.reference,
             name: created.name,
-            email: created.email,
+            email: created.email ?? undefined,
             phone: created.phone ?? undefined,
             companyName: created.companyName ?? undefined,
             categorySlug: created.categorySlug ?? undefined,

@@ -281,7 +281,7 @@ model Lead {
   idempotencyKey String   @unique
   name           String
   companyName    String?
-  email          String
+  email          String?
   phone          String?
   categorySlug   String?
   location       String?

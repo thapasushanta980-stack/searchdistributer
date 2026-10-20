@@ -16,7 +16,7 @@ import { newKey } from "@/lib/utils";
 type FormIn = z.input<typeof leadInputSchema>;
 type FormOut = z.output<typeof leadInputSchema>;
 
-const COPY: Record<LeadType, { submit: string; message: string; messageHint: string; success: string; showCompany: boolean; showCategory: boolean }> = {
+const COPY: Record<LeadType, { submit: string; message: string; messageHint: string; success: string; showCompany: boolean; showCategory: boolean; phoneRequired?: boolean; showLocation?: boolean; messageOptional?: boolean; emailOptional?: boolean }> = {
   BUSINESS_REGISTRATION: {
     submit: "Register interest",
     message: "About your business",
@@ -24,6 +24,10 @@ const COPY: Record<LeadType, { submit: string; message: string; messageHint: str
     success: "Thanks. We received your business details. Profiles are reviewed before they are published, and publication depends on an active subscription.",
     showCompany: true,
     showCategory: true,
+    phoneRequired: true,
+    showLocation: false,
+    messageOptional: true,
+    emailOptional: true,
   },
   REQUIREMENT: {
     submit: "Send Your Requirement",
@@ -104,7 +108,7 @@ export function LeadForm({ type }: { type: LeadType }) {
         <Field label="Your name" error={errors.name?.message}>
           {({ id, describedBy, invalid }) => <Input id={id} autoComplete="name" aria-invalid={invalid} aria-describedby={describedBy} {...register("name")} />}
         </Field>
-        <Field label="Email" error={errors.email?.message}>
+        <Field label="Email" optional={copy.emailOptional} error={errors.email?.message}>
           {({ id, describedBy, invalid }) => <Input id={id} type="email" autoComplete="email" aria-invalid={invalid} aria-describedby={describedBy} {...register("email")} />}
         </Field>
         {copy.showCompany && (
@@ -112,7 +116,7 @@ export function LeadForm({ type }: { type: LeadType }) {
             {({ id, describedBy, invalid }) => <Input id={id} autoComplete="organization" aria-invalid={invalid} aria-describedby={describedBy} {...register("companyName")} />}
           </Field>
         )}
-        <Field label="Phone" optional error={errors.phone?.message}>
+        <Field label="Phone" optional={!copy.phoneRequired} error={errors.phone?.message}>
           {({ id, describedBy, invalid }) => <Input id={id} type="tel" autoComplete="tel" aria-invalid={invalid} aria-describedby={describedBy} {...register("phone")} />}
         </Field>
         {copy.showCategory && (
@@ -129,11 +133,13 @@ export function LeadForm({ type }: { type: LeadType }) {
             )}
           </Field>
         )}
-        <Field label="Location" optional error={errors.location?.message}>
-          {({ id, describedBy, invalid }) => <Input id={id} aria-invalid={invalid} aria-describedby={describedBy} {...register("location")} />}
-        </Field>
+        {copy.showLocation !== false && (
+          <Field label="Location" optional error={errors.location?.message}>
+            {({ id, describedBy, invalid }) => <Input id={id} aria-invalid={invalid} aria-describedby={describedBy} {...register("location")} />}
+          </Field>
+        )}
       </div>
-      <Field label={copy.message} hint={copy.messageHint} error={errors.message?.message}>
+      <Field label={copy.message} optional={copy.messageOptional} hint={copy.messageHint} error={errors.message?.message}>
         {({ id, describedBy, invalid }) => <Textarea id={id} rows={5} aria-invalid={invalid} aria-describedby={describedBy} {...register("message")} />}
       </Field>
       <div>

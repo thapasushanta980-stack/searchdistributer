@@ -295,7 +295,7 @@ export function LeadDetailPage() {
             </section>
           )}
         </div>
-        <aside aria-labelledby="contact-h" className="lg:sticky lg:top-24 lg:self-start">
+        <aside aria-labelledby="contact-h" className="lg:sticky lg:top-6 lg:self-start">
           <div className="rounded-card border border-line bg-surface p-6 shadow-card">
             <h2 id="contact-h" className="text-xl">
               Contact / Enquiry

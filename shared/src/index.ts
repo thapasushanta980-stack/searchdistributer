@@ -173,7 +173,15 @@ export const leadInputSchema = z.object({
     .max(160)
     .optional()
     .transform((v) => v || undefined),
-  email: z.string().trim().toLowerCase().email("Enter a valid email address").max(200),
+  /** Required except on business registration, where it is optional. */
+  email: z
+    .string()
+    .trim()
+    .toLowerCase()
+    .max(200)
+    .refine((v) => v === "" || z.string().email().safeParse(v).success, "Enter a valid email address")
+    .optional()
+    .transform((v) => v || undefined),
   phone: z
     .string()
     .trim()
@@ -193,11 +201,16 @@ export const leadInputSchema = z.object({
     .max(120)
     .optional()
     .transform((v) => v || undefined),
-  message: z.string().trim().min(10, "Please write at least 10 characters").max(3000),
+  /** Required (10+ characters) except on business registration, where it is optional. */
+  message: z.string().trim().max(3000),
   consent: z.literal(true, { errorMap: () => ({ message: "Consent is required" }) }),
   idempotencyKey: z.string().uuid(),
   /** Honeypot: real users never fill this in. */
   website: z.string().max(0).optional(),
+}).superRefine((v, ctx) => {
+  if (v.type === "BUSINESS_REGISTRATION" && !v.phone) ctx.addIssue({ code: z.ZodIssueCode.custom, path: ["phone"], message: "Enter your phone number" });
+  if (v.type !== "BUSINESS_REGISTRATION" && !v.email) ctx.addIssue({ code: z.ZodIssueCode.custom, path: ["email"], message: "Enter a valid email address" });
+  if (v.type !== "BUSINESS_REGISTRATION" && v.message.length < 10) ctx.addIssue({ code: z.ZodIssueCode.custom, path: ["message"], message: "Please write at least 10 characters" });
 });
 export type LeadInput = z.input<typeof leadInputSchema>;
 

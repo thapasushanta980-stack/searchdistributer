@@ -21,7 +21,7 @@ const ICONS: Array<[RegExp, LucideIcon]> = [
   [/chemical|lab/i, FlaskConical],
   [/electronic|mobile|appliance|accessor/i, Cpu],
 ];
-const iconFor = (name: string) => ICONS.find(([re]) => re.test(name))?.[1] ?? Package;
+export const iconFor = (name: string) => ICONS.find(([re]) => re.test(name))?.[1] ?? Package;
 
 /** "Trending Categories" bar under the header: top industries by listing count, plus two sign-up prompts. */
 export function TrendingCategories() {
