@@ -1,0 +1,94 @@
+name: CI
+
+# Every pull request and every push to main must pass these checks. Merging is safe only when they're green.
+on:
+  pull_request:
+    branches: [main]
+  push:
+    branches: [main]
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  checks:
+    name: Typecheck, test, build
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    services:
+      postgres:
+        image: postgres:16-alpine
+        env:
+          POSTGRES_USER: ci
+          POSTGRES_PASSWORD: ci
+          POSTGRES_DB: sd_test
+        ports: ["5432:5432"]
+        options: >-
+          --health-cmd "pg_isready -U ci -d sd_test"
+          --health-interval 5s
+          --health-timeout 3s
+          --health-retries 20
+    env:
+      # Integration tests run against this disposable database.
+      TEST_DATABASE_URL: postgresql://ci:ci@localhost:5432/sd_test?schema=public
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+
+      - name: Install
+        run: npm ci
+
+      - name: Generate Prisma client
+        run: npx prisma generate --schema server/prisma/schema.prisma
+
+      - name: Typecheck
+        run: npm run typecheck
+
+      - name: Migrate and seed the test database
+        run: |
+          DATABASE_URL="$TEST_DATABASE_URL" npx prisma migrate deploy --schema server/prisma/schema.prisma
+          DATABASE_URL="$TEST_DATABASE_URL" npx tsx server/prisma/seed.ts
+
+      - name: Test
+        run: npm test -w server
+
+      - name: Build
+        run: npm run build
+
+  docker:
+    name: Production image builds
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+      # The same Dockerfile Coolify builds; catches image problems before they reach production.
+      - name: Build image
+        run: docker build --tag search-distributor:ci .
+
+  deploy:
+    name: Deploy to Coolify
+    needs: [checks, docker]
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    env:
+      COOLIFY_URL: ${{ secrets.COOLIFY_URL }}
+      COOLIFY_TOKEN: ${{ secrets.COOLIFY_TOKEN }}
+      COOLIFY_APP_UUID: ${{ secrets.COOLIFY_APP_UUID }}
+    steps:
+      # Off until the three secrets are added in GitHub (Settings > Secrets and variables > Actions).
+      - name: Trigger deployment
+        run: |
+          if [ -z "$COOLIFY_URL" ] || [ -z "$COOLIFY_TOKEN" ] || [ -z "$COOLIFY_APP_UUID" ]; then
+            echo "Deploy secrets not set; skipping. Deploy from the Coolify dashboard instead."
+            exit 0
+          fi
+          curl --fail --silent --show-error -X POST \
+            -H "Authorization: Bearer $COOLIFY_TOKEN" -H "Content-Type: application/json" \
+            -d "{\"uuid\":\"$COOLIFY_APP_UUID\",\"force\":false}" \
+            "$COOLIFY_URL/api/v1/deploy"
