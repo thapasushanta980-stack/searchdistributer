@@ -70,9 +70,11 @@ function LeadItem({ lead }: { lead: AdminLeadDTO }) {
           items={[
             [
               "Email",
-              <a key="e" href={`mailto:${lead.email}`} className="inline-flex items-center gap-1 text-primary hover:underline">
-                <Mail className="h-3.5 w-3.5" aria-hidden /> {lead.email}
-              </a>,
+              lead.email && (
+                <a key="e" href={`mailto:${lead.email}`} className="inline-flex items-center gap-1 text-primary hover:underline">
+                  <Mail className="h-3.5 w-3.5" aria-hidden /> {lead.email}
+                </a>
+              ),
             ],
             [
               "Phone",

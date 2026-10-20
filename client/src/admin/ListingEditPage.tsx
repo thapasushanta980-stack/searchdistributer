@@ -142,7 +142,7 @@ const fromLead = (lead: AdminLeadDTO, categories: CategoryDTO[]): FormState => {
     name: lead.companyName ?? lead.name,
     contactPerson: lead.name,
     whatsappNumber: lead.phone ?? "",
-    notificationEmail: lead.email,
+    notificationEmail: lead.email ?? "",
     location: lead.location ?? "",
     categoryId: cat?.id ?? "",
     description: lead.message,

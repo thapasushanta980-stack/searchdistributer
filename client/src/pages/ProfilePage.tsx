@@ -298,7 +298,7 @@ export function ProfilePage() {
               ))}
             </dl>
           </div>
-          {tabNav("sticky top-16 z-20 hidden rounded-card border border-line bg-white/95 shadow-card backdrop-blur sm:block")}
+          {tabNav("sticky top-16 lg:top-4 z-20 hidden rounded-card border border-line bg-white/95 shadow-card backdrop-blur sm:block")}
 
           <Section id="about" title="About Company">
             <p className="whitespace-pre-line leading-relaxed text-slate-700">{d.description}</p>
@@ -379,7 +379,7 @@ export function ProfilePage() {
           </Section>
         </div>
 
-        <aside id="contact" aria-labelledby="contact-h" className="max-sm:order-last sm:order-first lg:sticky lg:top-24 lg:order-none lg:self-start">
+        <aside id="contact" aria-labelledby="contact-h" className="max-sm:order-last sm:order-first lg:sticky lg:top-6 lg:order-none lg:self-start">
           <div className="hidden space-y-4 sm:block">
             <div className="rounded-card border border-line bg-surface p-5 shadow-card">
               {d.category && <p className="text-xs font-semibold uppercase tracking-wide text-primary">{d.category.name}</p>}

@@ -60,7 +60,7 @@ export function SiteHeader() {
   const isActive = (to: string) => (to.includes("?") ? current === to : pathname === to || (to !== "/" && pathname.startsWith(`${to}/`)));
 
   return (
-    <header className={cn("sticky top-0 z-40 border-b transition-[background-color,border-color,box-shadow] duration-300", scrolled ? "border-line bg-white/95 backdrop-blur-md sm:bg-white/80" : "border-transparent bg-background/95 sm:bg-background/70")}>
+    <header className={cn("sticky top-0 z-40 border-b lg:hidden transition-[background-color,border-color,box-shadow] duration-300", scrolled ? "border-line bg-white/95 backdrop-blur-md sm:bg-white/80" : "border-transparent bg-background/95 sm:bg-background/70")}>
       <div className={cn("container-page flex items-center justify-between gap-2 sm:gap-4 transition-[height] duration-300", "h-14", !scrolled && "sm:h-16")}>
         <Logo />
 

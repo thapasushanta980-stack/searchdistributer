@@ -1,6 +1,6 @@
 import { useQuery } from "@tanstack/react-query";
 import { AnimatePresence, m } from "framer-motion";
-import { ArrowUpRight, ChevronLeft, ChevronRight, Megaphone, X } from "lucide-react";
+import { ArrowRight, ArrowUpRight, ChevronLeft, ChevronRight, ClipboardList, Megaphone, UserPlus, X } from "lucide-react";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { Link } from "react-router-dom";
 import type { AdDTO, AdPlacement } from "@sd/shared";
@@ -197,15 +197,16 @@ export function AdBanner({ placement, fallback, dismissible, big, className }: {
     // House banner when no paid campaign is live. Labelled as an advertisement, never as content.
     return (
       <aside aria-label="Advertisement" className={className}>
-        <div className="relative flex min-h-[150px] flex-col justify-between gap-4 overflow-hidden rounded-[20px] border border-dashed border-line-strong bg-white p-5 sm:flex-row sm:items-center sm:p-7">
+        <div className={cn("relative isolate flex flex-col justify-end gap-4 overflow-hidden rounded-[20px] bg-primary p-6 text-white sm:flex-row sm:items-end sm:justify-between sm:p-8", big ? "min-h-[200px] sm:min-h-[260px]" : "min-h-[150px]")}>
+          <div aria-hidden className="absolute inset-0 -z-10 bg-[radial-gradient(60%_90%_at_100%_0%,rgb(255_255_255/0.16),transparent_60%),radial-gradient(50%_80%_at_0%_100%,rgb(32_59_159/0.6),transparent_70%)]" />
           <div>
-            <p className="inline-flex items-center gap-1.5 rounded-full bg-slate-900/[0.06] px-2.5 py-1 text-[11px] font-semibold uppercase tracking-wider text-slate-700">
+            <p className="inline-flex items-center gap-1.5 rounded-full bg-white/15 px-2.5 py-1 text-[11px] font-semibold uppercase tracking-wider text-white">
               <Megaphone className="h-3 w-3" aria-hidden /> Advertisement
             </p>
-            <h3 className="mt-3 text-xl sm:text-2xl">Your brand could be here.</h3>
-            <p className="mt-1.5 max-w-xl text-sm text-body">Reach distributors and business buyers with a clearly labelled, measurable placement.</p>
+            <h3 className="mt-3 text-xl text-white sm:text-3xl">Your brand could be here.</h3>
+            <p className="mt-1.5 max-w-xl text-sm text-white/80 sm:text-base">Reach distributors and business buyers with a clearly labelled, measurable placement.</p>
           </div>
-          <Button asChild>
+          <Button asChild variant="secondary" className="self-start border-0 sm:self-end">
             <Link to="/advertising">Advertise with us</Link>
           </Button>
         </div>
@@ -286,6 +287,37 @@ export function AdBanner({ placement, fallback, dismissible, big, className }: {
 /* Spotlight: up to two sponsored cards side by side                   */
 /* ------------------------------------------------------------------ */
 
+const HOUSE_CARDS = [
+  { title: "Grow your distribution network", text: "List your business so distributors and buyers can find you.", cta: "Register Business", to: "/register", icon: UserPlus },
+  { title: "Looking for a distributor?", text: "Post a requirement and let businesses respond through the platform.", cta: "Post Requirement", to: "/post-requirement", icon: ClipboardList },
+] as const;
+
+/** Our own calls to action, shown in the spotlight slots when no sponsored card is live. Not advertising. */
+function HouseCards({ className }: { className?: string }) {
+  return (
+    <ul className={cn("grid gap-4 sm:grid-cols-2 sm:gap-5", className)}>
+      {HOUSE_CARDS.map((c) => (
+        <li key={c.to}>
+          <Link to={c.to} className="group relative isolate flex min-h-[170px] flex-col justify-between gap-4 overflow-hidden rounded-[20px] bg-primary p-6 text-white transition-shadow duration-300 hover:shadow-[0_26px_60px_-26px_rgba(49,86,211,0.7)]">
+            <div aria-hidden className="absolute inset-0 -z-10 bg-[radial-gradient(70%_100%_at_100%_0%,rgb(255_255_255/0.14),transparent_60%)]" />
+            <c.icon className="h-8 w-8 text-white/80" aria-hidden />
+            <div>
+              <h3 className="text-lg text-white sm:text-xl">{c.title}</h3>
+              <p className="mt-1 text-sm text-white/80">{c.text}</p>
+              <span className="mt-3 inline-flex items-center gap-1.5 text-sm font-semibold">
+                {c.cta} <ArrowRight className="h-4 w-4 transition-transform group-hover:translate-x-0.5" aria-hidden />
+              </span>
+            </div>
+          </Link>
+        </li>
+      ))}
+    </ul>
+  );
+}
+
+/* ------------------------------------------------------------------ */
+/* ------------------------------------------------------------------ */
+
 function SpotlightCard({ ad }: { ad: AdDTO }) {
   const ref = useImpression(ad.id, true);
   return (
@@ -321,11 +353,11 @@ function SpotlightCard({ ad }: { ad: AdDTO }) {
   );
 }
 
-export function AdSpotlight({ className }: { className?: string }) {
+export function AdSpotlight({ className, fallback }: { className?: string; fallback?: boolean }) {
   const api = useApi();
   const { data: ads = [] } = useQuery(adsQuery(api, "HOME_SPOTLIGHT"));
   usePreloadImages(ads);
-  if (!ads.length) return null;
+  if (!ads.length) return fallback ? <HouseCards className={className} /> : null;
   return (
     <aside aria-label="Advertisements" className={className}>
       <ul className={cn("scrollbar-none relative -mx-4 flex snap-x snap-mandatory gap-3 overflow-x-auto scroll-px-4 px-4 pb-1 sm:mx-0 sm:grid sm:snap-none sm:grid-cols-[minmax(0,1fr)] sm:gap-5 sm:overflow-visible sm:px-0 sm:pb-0", ads.length > 1 && "md:grid-cols-2")}>

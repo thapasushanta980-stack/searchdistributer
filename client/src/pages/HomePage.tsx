@@ -8,26 +8,17 @@ import { CtaBand } from "@/components/home/blocks";
 import { HowItWorks } from "@/components/home/HowItWorks";
 import { AdBanner, AdSpotlight } from "@/components/ads/AdSlot";
 import { Showcase } from "@/components/home/Showcase";
-import { HeroNetwork } from "@/components/home/visuals";
 import { TrendingCategories } from "@/components/layout/TrendingCategories";
 import { RequirementCard } from "@/components/leads/RequirementCard";
 import { Button } from "@/components/ui/button";
 import { Reveal } from "@/components/ui/reveal";
 import { useApi, useSite } from "@/lib/context";
 import { categoriesQuery, requirementsQuery } from "@/lib/queries";
-import { cn } from "@/lib/utils";
 import { PageHead } from "@/seo/head";
 import { abs, organizationLd, websiteLd } from "@/seo/builders";
 
 /** Queries shared with the server-side prefetcher in routes.tsx. */
 export const HOME_LEADS: RequirementSearchParams = { ...parseRequirementSearch(new URLSearchParams()), page: 1 };
-
-const TABS = [
-  { id: "distributors", label: "Find Distributors", short: "Distributors", path: "/distributors", placeholder: "Product, brand or keyword", location: true },
-  { id: "products", label: "Find Products", short: "Products", path: "/products", placeholder: "Product or brand name", location: false },
-  { id: "brands", label: "Find Brands", short: "Brands", path: "/brands", placeholder: "Brand or manufacturer", location: true },
-  { id: "leads", label: "Distributor Leads", short: "Leads", path: "/leads", placeholder: "Requirement or product", location: true },
-] as const;
 
 const WHY = [
   { icon: SlidersHorizontal, title: "Structured Discovery", text: "Find businesses through categories, products and locations." },
@@ -62,21 +53,20 @@ export function HomePage() {
   const { data: categories = [] } = useQuery(categoriesQuery(api));
   const { data: leads } = useQuery(requirementsQuery(api, HOME_LEADS));
 
-  const [tab, setTab] = useState<(typeof TABS)[number]["id"]>("distributors");
   const [kw, setKw] = useState("");
   const [loc, setLoc] = useState("");
-  const [cat, setCat] = useState("");
-  const active = TABS.find((t) => t.id === tab)!;
+  const listed = categories.reduce((n, c) => n + c.distributorCount, 0);
+  const industries = categories.filter((c) => c.distributorCount > 0).length;
 
   const go = useCallback(
-    (category = cat) => {
+    (category?: string) => {
       const q = new URLSearchParams();
       if (kw.trim()) q.set("keyword", kw.trim());
-      if (active.location && loc.trim()) q.set("location", loc.trim());
+      if (loc.trim()) q.set("location", loc.trim());
       if (category) q.set("category", category);
-      navigate(`${active.path}${q.toString() ? `?${q}` : ""}`);
+      navigate(`/distributors${q.toString() ? `?${q}` : ""}`);
     },
-    [kw, loc, cat, active, navigate],
+    [kw, loc, navigate],
   );
 
   const leadItems = (leads?.data ?? []).slice(0, 3);
@@ -92,72 +82,48 @@ export function HomePage() {
   return (
     <>
       <PageHead spec={spec} site={site} />
-      <TrendingCategories />
+      {/* Desktop shows the categories in the sidebar. */}
+      <div className="lg:hidden">
+        <TrendingCategories />
+      </div>
 
-      {/* Phones show the ads first; from sm up the hero comes first. */}
-      <div className="flex flex-col">
-      {/* ---------------- Hero ---------------- */}
-      <section className="relative isolate overflow-hidden">
-        <div className="hero-bg" aria-hidden>
-          <div className="hero-grid" />
+      {/* ---------------- Hero: headline, search, then the promotional banners ---------------- */}
+      <section className="relative isolate">
+        <div className="hero-bg" aria-hidden />
+        <div className="container-page pb-5 pt-6 text-center sm:pb-6 sm:pt-9 lg:pt-10">
+          <h1 className="anim-rise mx-auto max-w-2xl text-[1.7rem] leading-[1.15] tracking-tight sm:text-[2.2rem] lg:text-[2.6rem]">
+            Connecting <span className="text-primary">Right</span> Distributors
+            <br className="hidden sm:block" /> to <span className="text-primary">Right</span> Businesses
+          </h1>
+          <div className="anim-pop relative z-20 mx-auto mt-5 max-w-[560px] text-left sm:mt-6">
+            <SearchPanel
+              keyword={kw}
+              location={loc}
+              onKeywordChange={setKw}
+              onLocationChange={setLoc}
+              onSubmit={() => go()}
+              onPickCategory={(slug) => go(slug)}
+              placeholder="Search products, brands, distributors"
+            />
+          </div>
+          <p className="anim-rise mt-3 flex flex-wrap items-center justify-center gap-x-1.5 gap-y-1 text-xs text-body sm:text-sm" style={{ animationDelay: "200ms" }}>
+            {listed > 0 && (
+              <>
+                <span className="h-2 w-2 rounded-full bg-success" aria-hidden />
+                {listed.toLocaleString("en")} {listed === 1 ? "business is" : "businesses are"} listed across {industries} {industries === 1 ? "industry" : "industries"}.
+              </>
+            )}
+            <Link to="/categories" className="font-semibold text-primary hover:underline">
+              Browse All Industries
+            </Link>
+          </p>
         </div>
-        <div className="mx-auto grid max-w-[1320px] grid-cols-[minmax(0,1fr)] items-center gap-10 px-4 pb-12 pt-8 sm:px-6 lg:grid-cols-[1.4fr_0.6fr] lg:gap-4 lg:pb-16 lg:pt-12">
-          <div className="min-w-0">
-            <p className="anim-rise hidden items-center gap-2 rounded-full bg-primary-soft px-3 py-1 text-xs font-bold uppercase tracking-[0.16em] text-primary-dark sm:inline-flex"><span className="h-1.5 w-1.5 rounded-full bg-primary" aria-hidden />The B2B Distribution Network</p>
-            <h1 className="anim-rise sr-only sm:not-sr-only sm:mt-4 sm:block text-[2rem] leading-[1.1] tracking-tight sm:text-4xl lg:text-[2.6rem]" style={{ animationDelay: "60ms" }}>
-              Find the right distributor.
-              <br />
-              <span className="text-primary">Grow into new markets.</span>
-            </h1>
-            <p className="anim-rise mt-3 hidden max-w-lg text-sm leading-relaxed text-body sm:block sm:text-base" style={{ animationDelay: "120ms" }}>
-              Search distributors, discover products, explore brands and connect with businesses looking for new distribution opportunities.
-            </p>
 
-            <div className="anim-pop relative z-20 mt-0 max-w-[680px] sm:mt-6">
-              <div role="tablist" aria-label="What are you looking for?" className="relative mb-3 grid max-w-full grid-cols-4 gap-1 rounded-full sm:inline-flex sm:flex-wrap bg-white/80 p-1 shadow-sm ring-1 ring-line backdrop-blur">
-                {TABS.map((t) => (
-                  <button
-                    key={t.id}
-                    type="button"
-                    role="tab"
-                    id={`tab-${t.id}`}
-                    aria-selected={tab === t.id}
-                    onClick={() => setTab(t.id)}
-                    className={cn("min-h-11 min-w-0 whitespace-nowrap rounded-full px-1 text-xs font-semibold transition-colors sm:min-h-0 sm:px-3.5 sm:py-1.5 sm:text-[13px]", tab === t.id ? "bg-ink text-white shadow-sm" : "text-slate-600 hover:bg-slate-100 hover:text-ink")}
-                  >
-                    <span className="sm:hidden">{t.short}</span>
-                    <span className="hidden sm:inline">{t.label}</span>
-                  </button>
-                ))}
-              </div>
-              <div role="tabpanel" aria-labelledby={`tab-${tab}`}>
-                <SearchPanel
-                  keyword={kw}
-                  location={loc}
-                  onKeywordChange={setKw}
-                  onLocationChange={setLoc}
-                  onSubmit={() => go()}
-                  onPickCategory={(slug) => go(slug)}
-                  categories={categories}
-                  category={cat}
-                  onCategoryChange={setCat}
-                  placeholder={active.placeholder}
-                />
-              </div>
-            </div>
-          </div>
-          <div className="hidden lg:block">
-            <HeroNetwork />
-          </div>
+        <div className="container-page space-y-4 pb-4 sm:space-y-5 sm:pb-12">
+          <AdBanner placement="HOME_HERO_BANNER" fallback big />
+          <AdSpotlight fallback />
         </div>
       </section>
-
-      {/* ---------------- Advertising: hero promotional banner ---------------- */}
-      <div className="container-page order-first space-y-4 pb-4 pt-3 sm:order-none sm:space-y-5 sm:pb-12 sm:pt-0">
-        <AdBanner placement="HOME_HERO_BANNER" fallback big />
-        <AdSpotlight />
-      </div>
-      </div>
 
       {/* ---------------- Business & product showcase ---------------- */}
       <Section>

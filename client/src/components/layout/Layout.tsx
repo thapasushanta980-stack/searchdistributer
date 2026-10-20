@@ -1,4 +1,5 @@
-import { ArrowLeft, ChevronRight, WifiOff } from "lucide-react";
+import { ArrowLeft, Building2, ChevronRight, WifiOff } from "lucide-react";
+import { Button } from "@/components/ui/button";
 import type { ReactNode } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { TopProgress } from "@/components/ui/top-progress";
@@ -6,16 +7,30 @@ import { QuickRequirementPrompt } from "./QuickRequirementPrompt";
 import { useOnlineStatus } from "@/lib/utils";
 import { SiteFooter } from "./SiteFooter";
 import { SiteHeader } from "./SiteHeader";
+import { SiteSidebar } from "./SiteSidebar";
 
 export function Layout({ children }: { children: ReactNode }) {
   const online = useOnlineStatus();
   return (
-    <div className="flex min-h-dvh flex-col">
+    <div className="flex min-h-dvh flex-col lg:pl-60">
       <TopProgress />
       <a href="#main" className="skip-link">
         Skip to main content
       </a>
+      <SiteSidebar />
       <SiteHeader />
+      {/* Desktop top bar: the sidebar holds navigation, this keeps the sign-up call to action in view. */}
+      <div className="hidden h-14 items-center justify-end gap-2 border-b border-line bg-white px-6 lg:flex">
+        <Button asChild variant="ghost" size="sm">
+          <Link to="/login">Login</Link>
+        </Button>
+        <Button asChild size="sm">
+          <Link to="/register">
+            <Building2 className="h-4 w-4" aria-hidden />
+            Register Your Business
+          </Link>
+        </Button>
+      </div>
       {!online && (
         <div role="status" className="flex items-center justify-center gap-2 bg-amber-100 px-4 py-2 text-sm font-medium text-amber-900">
           <WifiOff className="h-4 w-4" aria-hidden /> You are offline. Showing the last results loaded; new searches will resume when you reconnect.
@@ -40,12 +55,12 @@ export function Breadcrumbs({ items }: { items: Array<{ name: string; to?: strin
     else navigate(parent);
   };
   return (
-    <div className="flex items-center gap-1 sm:block">
+    <div className="flex items-center gap-1 sm:gap-3">
       <button
         type="button"
         onClick={goBack}
         aria-label="Go back"
-        className="-ml-2 flex h-11 w-11 shrink-0 items-center justify-center rounded-full text-ink transition-colors hover:bg-slate-100 sm:hidden"
+        className="-ml-2 flex h-11 w-11 shrink-0 items-center justify-center rounded-full text-ink transition-colors hover:bg-slate-100 sm:ml-0 sm:h-9 sm:w-9 sm:border sm:border-line sm:bg-white sm:shadow-card"
       >
         <ArrowLeft className="h-5 w-5" aria-hidden />
       </button>

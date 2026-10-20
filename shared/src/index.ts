@@ -166,6 +166,12 @@ export const enquiryInputSchema = z.object({
 });
 export type EnquiryInput = z.input<typeof enquiryInputSchema>;
 
+/** Email and message are optional on business registration and required on every other lead type. */
+function leadContactRules(v: { type: LeadType; email?: string; message: string }, ctx: z.RefinementCtx) {
+  if (v.type !== "BUSINESS_REGISTRATION" && !v.email) ctx.addIssue({ code: z.ZodIssueCode.custom, path: ["email"], message: "Enter a valid email address" });
+  if (v.type !== "BUSINESS_REGISTRATION" && v.message.length < 10) ctx.addIssue({ code: z.ZodIssueCode.custom, path: ["message"], message: "Please write at least 10 characters" });
+}
+
 export const leadInputSchema = z
   .object({
     type: z.enum(LEAD_TYPES),
@@ -176,7 +182,15 @@ export const leadInputSchema = z
       .max(160)
       .optional()
       .transform((v) => v || undefined),
-    email: z.string().trim().toLowerCase().email("Enter a valid email address").max(200),
+    /** Required except on business registration, where it is optional. */
+    email: z
+      .string()
+      .trim()
+      .toLowerCase()
+      .max(200)
+      .refine((v) => v === "" || z.string().email().safeParse(v).success, "Enter a valid email address")
+      .optional()
+      .transform((v) => v || undefined),
     phone: z
       .string()
       .trim()
@@ -196,7 +210,8 @@ export const leadInputSchema = z
       .max(120)
       .optional()
       .transform((v) => v || undefined),
-    message: z.string().trim().min(10, "Please write at least 10 characters").max(3000),
+    /** Required (10+ characters) except on business registration, where it is optional. */
+    message: z.string().trim().max(3000),
     consent: z.literal(true, { errorMap: () => ({ message: "Consent is required" }) }),
     idempotencyKey: z.string().uuid(),
     /** Honeypot: real users never fill this in. */
@@ -206,6 +221,7 @@ export const leadInputSchema = z
     if (PHONE_REQUIRED_LEAD_TYPES.includes(v.type) && !v.phone) {
       ctx.addIssue({ code: z.ZodIssueCode.custom, path: ["phone"], message: "Enter a phone number so we can reach you" });
     }
+    leadContactRules(v, ctx);
   });
 export type LeadInput = z.input<typeof leadInputSchema>;
 
@@ -214,9 +230,12 @@ export type LeadInput = z.input<typeof leadInputSchema>;
  * (Cross-field checks only run once every other field is valid, so a form using leadInputSchema would
  * reveal "phone required" only on a second attempt.)
  */
-export const phoneRequiredLeadSchema = leadInputSchema.innerType().extend({
-  phone: z.string().trim().min(1, "Enter a phone number so we can reach you").max(24).regex(phoneRegex, "Enter a valid phone number"),
-});
+export const phoneRequiredLeadSchema = leadInputSchema
+  .innerType()
+  .extend({
+    phone: z.string().trim().min(1, "Enter a phone number so we can reach you").max(24).regex(phoneRegex, "Enter a valid phone number"),
+  })
+  .superRefine(leadContactRules);
 
 /* ------------------------------------------------------------------ */
 /* API payload types                                                   */
@@ -750,7 +769,7 @@ export interface AdminLeadDTO {
   status: LeadStatus;
   name: string;
   companyName: string | null;
-  email: string;
+  email: string | null;
   phone: string | null;
   categorySlug: string | null;
   location: string | null;

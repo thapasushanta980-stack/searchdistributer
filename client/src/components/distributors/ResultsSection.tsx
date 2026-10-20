@@ -104,7 +104,7 @@ export function ResultsSection({ lockedCategory, lockedBusinessType, basePath, s
       <div className="grid gap-8 lg:grid-cols-[272px_minmax(0,1fr)]">
         {/* ---------- Desktop filter sidebar ---------- */}
         <aside aria-label="Filters" className="hidden lg:block">
-          <div className="sticky top-24 max-h-[calc(100dvh-7rem)] overflow-y-auto rounded-card border border-line bg-surface p-5 shadow-card">
+          <div className="sticky top-24 lg:top-6 max-h-[calc(100dvh-7rem)] overflow-y-auto rounded-card border border-line bg-surface p-5 shadow-card">
             <div className="mb-4 flex items-center justify-between">
               <h3 className="font-sans text-base font-semibold tracking-normal">Filter Results</h3>
               <button type="button" onClick={clear} disabled={!canClear} className="text-sm font-medium text-primary hover:underline disabled:pointer-events-none disabled:text-slate-400">

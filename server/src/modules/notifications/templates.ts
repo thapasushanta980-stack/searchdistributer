@@ -57,10 +57,10 @@ export function renderTemplate(template: string, to: string, p: Payload): MailMe
       return {
         to,
         subject: `New ${(p.type ?? "").toLowerCase().replace("_", " ")} ${p.reference}`,
-        text: `${p.type} ${p.reference}\n\n${p.name} <${p.email}> ${p.phone ?? ""}\nCompany: ${p.companyName ?? "-"}\nCategory: ${p.categorySlug ?? "-"}\nLocation: ${p.location ?? "-"}\n\n${p.message}`,
+        text: `${p.type} ${p.reference}\n\n${p.name} <${p.email ?? "no email"}> ${p.phone ?? ""}\nCompany: ${p.companyName ?? "-"}\nCategory: ${p.categorySlug ?? "-"}\nLocation: ${p.location ?? "-"}\n\n${p.message}`,
         html: shell(
           `New ${p.type}`,
-          `<p>${esc(p.name)} &lt;${esc(p.email)}&gt;<br>Company: ${esc(p.companyName ?? "-")}</p><blockquote style="white-space:pre-wrap">${esc(p.message)}</blockquote>`,
+          `<p>${esc(p.name)} &lt;${esc(p.email ?? "no email")}&gt;<br>Phone: ${esc(p.phone ?? "-")}<br>Company: ${esc(p.companyName ?? "-")}</p><blockquote style="white-space:pre-wrap">${esc(p.message)}</blockquote>`,
         ),
       };
     default:
