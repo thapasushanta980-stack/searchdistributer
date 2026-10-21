@@ -28,6 +28,7 @@ describe.skipIf(!url)("admin modules (real database)", () => {
       summary: "Packaged food distribution across the valley.",
       description: "We distribute packaged foods and beverages to retailers across Kathmandu valley.",
       location: "Kathmandu, Nepal",
+      city: "Kathmandu",
       coverage: "NATIONAL",
       verificationStatus: "NONE",
       ...over,
