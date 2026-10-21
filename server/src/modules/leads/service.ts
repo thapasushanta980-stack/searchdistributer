@@ -22,6 +22,7 @@ export async function submitLead(input: LeadInput): Promise<LeadResponse> {
         data: {
           reference: makeReference(PREFIX[input.type]),
           type: input.type,
+          registrationSide: input.registrationSide ?? null,
           idempotencyKey: input.idempotencyKey,
           name: input.name,
           companyName: input.companyName,

@@ -36,6 +36,7 @@ const toLead = (l: LeadRow): AdminLeadDTO => ({
   id: l.id,
   reference: l.reference,
   type: l.type,
+  registrationSide: l.registrationSide === "BRAND" || l.registrationSide === "DISTRIBUTOR" ? l.registrationSide : null,
   status: l.status,
   name: l.name,
   companyName: l.companyName,

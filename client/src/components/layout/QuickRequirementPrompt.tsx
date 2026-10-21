@@ -12,8 +12,8 @@ const dialog = lazyClient<{ open: boolean; onClose: () => void; onSubmitted: () 
 
 const STORAGE_KEY = "sd-quick-requirement";
 const SNOOZE_MS = 7 * 86_400_000;
-const DESKTOP_DELAY_MS = 12_000;
-const MOBILE_DELAY_MS = 15_000;
+const DESKTOP_DELAY_MS = 3_000;
+const MOBILE_DELAY_MS = 5_000;
 const OPEN_EVENT = "sd:quick-requirement";
 
 /** Pages that already are a form, or a flow the prompt must not interrupt. */
@@ -48,7 +48,7 @@ export function openQuickRequirement(intent: QuickIntent = "FIND_DISTRIBUTORS") 
 
 /**
  * The timed "tell us your requirement" prompt, plus the "Chat with us" WhatsApp button.
- * Desktop: the form opens once after a while on the site. Mobile: a small bar slides up instead of a full-screen
+ * Desktop: the form opens once, 3 s into the visit. Mobile: a small bar slides up instead of a full-screen
  * pop-up (Google penalises intrusive mobile interstitials). Closing it snoozes it for 7 days; submitting stops it.
  */
 export function QuickRequirementPrompt() {

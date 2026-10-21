@@ -84,6 +84,7 @@ function LeadItem({ lead }: { lead: AdminLeadDTO }) {
                 </a>
               ),
             ],
+            ["Registration side", lead.registrationSide === "BRAND" ? "Brand / Manufacturer" : lead.registrationSide === "DISTRIBUTOR" ? "Distributor / Wholesaler / Dealer" : null],
             ["Location", lead.location],
             ["Category", lead.categorySlug],
           ]}

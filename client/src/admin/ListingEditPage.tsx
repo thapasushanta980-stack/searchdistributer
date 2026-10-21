@@ -1,6 +1,6 @@
 import { useQuery, useQueryClient } from "@tanstack/react-query";
-import { ArrowLeft, Check, CircleSlash, ExternalLink, Inbox, Pause, Pencil, Plus, Rocket, Archive } from "lucide-react";
-import { useEffect, useState, type FormEvent } from "react";
+import { AlertTriangle, Archive, ArrowLeft, Check, CircleSlash, ExternalLink, Inbox, Pause, Pencil, Plus, Rocket } from "lucide-react";
+import { useEffect, useMemo, useRef, useState, type FormEvent, type ReactNode } from "react";
 import { Link, useNavigate, useParams, useSearchParams } from "react-router-dom";
 import {
   BUSINESS_TYPES,
@@ -8,8 +8,10 @@ import {
   COVERAGE_LABELS,
   COVERAGE_SCOPES,
   LISTING_STATUS_LABELS,
+  NEPAL_CITIES,
   VERIFICATION_LABELS,
   VERIFICATION_STATUSES,
+  adminListingInputSchema,
   type AdminLeadDTO,
   type AdminListingAction,
   type AdminListingDTO,
@@ -17,10 +19,13 @@ import {
   type AdminProductDTO,
   type AdminProductInput,
   type CategoryDTO,
+  type DistributorCardDTO,
 } from "@sd/shared";
+import { DistributorCard } from "@/components/distributors/DistributorCard";
+import { CityPicker } from "@/components/forms/CityPicker";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
-import { adminApi } from "./api";
+import { AdminApiError, adminApi } from "./api";
 import { LISTINGS_KEY } from "./ListingsPage";
 import {
   Card,
@@ -28,20 +33,23 @@ import {
   ErrorLine,
   Field,
   PageHeader,
-  Section,
   Select,
   StatusBadge,
+  TagInput,
   TextArea,
   TextInput,
   Toggle,
   fieldError,
   fmtDate,
   fromDateInput,
-  splitList,
   toDateInput,
   useAdminMutation,
   useIsSuperAdmin,
 } from "./ui";
+
+/* ------------------------------------------------------------------ */
+/* Form model                                                          */
+/* ------------------------------------------------------------------ */
 
 /** Form state keeps raw strings so half-typed values (like "19") never fight the input. */
 interface FormState {
@@ -54,8 +62,8 @@ interface FormState {
   city: string;
   country: string;
   coverage: AdminListingInput["coverage"];
-  territories: string;
-  specialties: string;
+  territories: string[];
+  specialties: string[];
   website: string;
   logoUrl: string;
   contactPerson: string;
@@ -81,11 +89,11 @@ const blank: FormState = {
   summary: "",
   description: "",
   location: "",
-  city: "",
-  country: "",
+  city: "Kathmandu",
+  country: "Nepal",
   coverage: "NATIONAL",
-  territories: "",
-  specialties: "",
+  territories: [],
+  specialties: [],
   website: "",
   logoUrl: "",
   contactPerson: "",
@@ -97,7 +105,7 @@ const blank: FormState = {
   supportOffered: "",
   investmentMin: "",
   investmentMax: "",
-  investmentCurrency: "",
+  investmentCurrency: "NPR",
   verificationStatus: "NONE",
   isFeatured: false,
   featuredUntil: "",
@@ -114,8 +122,8 @@ const fromListing = (l: AdminListingDTO): FormState => ({
   city: l.city ?? "",
   country: l.country ?? "",
   coverage: l.coverage,
-  territories: l.territories.join(", "),
-  specialties: l.specialties.join(", "),
+  territories: l.territories,
+  specialties: l.specialties,
   website: l.website ?? "",
   logoUrl: l.logoUrl ?? "",
   contactPerson: l.contactPerson ?? "",
@@ -127,23 +135,26 @@ const fromListing = (l: AdminListingDTO): FormState => ({
   supportOffered: l.supportOffered ?? "",
   investmentMin: l.investmentMin !== null ? String(l.investmentMin) : "",
   investmentMax: l.investmentMax !== null ? String(l.investmentMax) : "",
-  investmentCurrency: l.investmentCurrency ?? "",
+  investmentCurrency: l.investmentCurrency ?? "NPR",
   verificationStatus: l.verificationStatus,
   isFeatured: l.isFeatured,
   featuredUntil: toDateInput(l.featuredUntil),
   listedUntil: toDateInput(l.listedUntil),
 });
 
-/** Prefill from a business registration lead. */
+/** Prefill from a registration or "find distributors" lead. */
 const fromLead = (lead: AdminLeadDTO, categories: CategoryDTO[]): FormState => {
   const cat = categories.flatMap((c) => [c, ...c.children]).find((c) => c.slug === lead.categorySlug);
+  const city = lead.location ?? "";
   return {
     ...blank,
     name: lead.companyName ?? lead.name,
+    businessType: lead.registrationSide === "BRAND" ? "MANUFACTURER" : blank.businessType,
     contactPerson: lead.name,
     whatsappNumber: lead.phone ?? "",
     notificationEmail: lead.email ?? "",
-    location: lead.location ?? "",
+    city: city || "Kathmandu",
+    location: city ? `${city}, Nepal` : "",
     categoryId: cat?.id ?? "",
     description: lead.message,
   };
@@ -158,11 +169,11 @@ const toInput = (f: FormState, fromLeadId?: string): AdminListingInput => ({
   summary: f.summary,
   description: f.description,
   location: f.location,
-  city: f.city || null,
+  city: f.city,
   country: f.country || null,
   coverage: f.coverage,
-  territories: splitList(f.territories),
-  specialties: splitList(f.specialties),
+  territories: f.territories,
+  specialties: f.specialties,
   website: f.website || null,
   logoUrl: f.logoUrl || null,
   contactPerson: f.contactPerson || null,
@@ -174,17 +185,96 @@ const toInput = (f: FormState, fromLeadId?: string): AdminListingInput => ({
   supportOffered: f.supportOffered || null,
   investmentMin: num(f.investmentMin),
   investmentMax: num(f.investmentMax),
-  investmentCurrency: f.investmentCurrency || null,
+  investmentCurrency: f.investmentMin || f.investmentMax ? f.investmentCurrency || null : null,
   verificationStatus: f.verificationStatus,
   isFeatured: f.isFeatured,
-  featuredUntil: fromDateInput(f.featuredUntil),
+  featuredUntil: f.isFeatured ? fromDateInput(f.featuredUntil) : null,
   listedUntil: fromDateInput(f.listedUntil),
   ...(fromLeadId ? { fromLeadId } : {}),
 });
 
-function CategorySelect({ id, value, onChange, categories }: { id: string; value: string; onChange: (v: string) => void; categories: CategoryDTO[] }) {
+/* ------------------------------------------------------------------ */
+/* Tabs and field metadata                                             */
+/* ------------------------------------------------------------------ */
+
+const TABS = [
+  { key: "essentials", label: "Essentials", hint: "Everything required to save" },
+  { key: "profile", label: "Profile", hint: "Brand, contact and coverage" },
+  { key: "terms", label: "Distribution terms", hint: "What distributors get" },
+  { key: "publishing", label: "Publishing", hint: "Listing period and trust" },
+] as const;
+type Tab = (typeof TABS)[number]["key"];
+
+/** Where each field lives and what it's called, for tab error badges and the error summary. */
+const FIELDS: Record<string, { tab: Tab; label: string }> = {
+  name: { tab: "essentials", label: "Company name" },
+  businessType: { tab: "essentials", label: "Business type" },
+  categoryId: { tab: "essentials", label: "Category" },
+  city: { tab: "essentials", label: "City" },
+  location: { tab: "essentials", label: "Shown on cards as" },
+  summary: { tab: "essentials", label: "Summary" },
+  description: { tab: "essentials", label: "Description" },
+  whatsappNumber: { tab: "essentials", label: "WhatsApp number" },
+  logoUrl: { tab: "profile", label: "Logo image link" },
+  website: { tab: "profile", label: "Website" },
+  contactPerson: { tab: "profile", label: "Contact person" },
+  notificationEmail: { tab: "profile", label: "Notification email" },
+  country: { tab: "profile", label: "Country" },
+  coverage: { tab: "profile", label: "Coverage" },
+  territories: { tab: "profile", label: "Territories served" },
+  specialties: { tab: "profile", label: "Specialties" },
+  foundedYear: { tab: "profile", label: "Founded" },
+  minimumOrder: { tab: "terms", label: "Minimum order" },
+  supportOffered: { tab: "terms", label: "Support offered" },
+  distributorshipInfo: { tab: "terms", label: "Distributorship terms" },
+  investmentMin: { tab: "terms", label: "Investment from" },
+  investmentMax: { tab: "terms", label: "Investment up to" },
+  investmentCurrency: { tab: "terms", label: "Currency" },
+  verificationStatus: { tab: "publishing", label: "Verification" },
+  listedUntil: { tab: "publishing", label: "Listed until" },
+  isFeatured: { tab: "publishing", label: "Featured" },
+  featuredUntil: { tab: "publishing", label: "Featured until" },
+};
+
+/** Same rules as the server, run in the browser so errors appear instantly. */
+function validate(f: FormState): Record<string, string> {
+  const r = adminListingInputSchema.safeParse(toInput(f));
+  const out: Record<string, string> = {};
+  if (!r.success) for (const i of r.error.issues) out[String(i.path[0] ?? "_")] ??= i.message;
+  return out;
+}
+
+/** Profile completeness: what makes a listing convincing to a distributor, weighted. */
+function completeness(f: FormState, productCount: number) {
+  const checks: Array<{ ok: boolean; weight: number; label: string; tab: Tab }> = [
+    { ok: f.description.trim().length >= 150, weight: 15, label: "A description of at least 150 characters", tab: "essentials" },
+    { ok: !!f.whatsappNumber.trim(), weight: 15, label: "A WhatsApp number", tab: "essentials" },
+    { ok: productCount > 0, weight: 15, label: "At least one product", tab: "essentials" },
+    { ok: !!f.logoUrl.trim(), weight: 10, label: "A logo", tab: "profile" },
+    { ok: f.specialties.length > 0, weight: 10, label: "Specialties", tab: "profile" },
+    { ok: f.territories.length > 0, weight: 10, label: "Territories served", tab: "profile" },
+    { ok: !!f.website.trim(), weight: 5, label: "A website", tab: "profile" },
+    { ok: !!f.foundedYear.trim(), weight: 5, label: "Year founded", tab: "profile" },
+    { ok: !!(f.minimumOrder.trim() || f.distributorshipInfo.trim()), weight: 10, label: "Minimum order or terms", tab: "terms" },
+    { ok: !!(f.investmentMin || f.investmentMax), weight: 5, label: "An investment range", tab: "terms" },
+  ];
+  const score = checks.reduce((s, c) => s + (c.ok ? c.weight : 0), 0);
+  return { score, missing: checks.filter((c) => !c.ok).sort((a, b) => b.weight - a.weight) };
+}
+
+/** NPR amounts read naturally in lakhs and crores. */
+function amountHint(v: string, currency: string) {
+  const n = Number(v);
+  if (!v || !Number.isFinite(n) || n <= 0) return undefined;
+  if (currency !== "NPR") return `${currency} ${n.toLocaleString()}`;
+  if (n >= 10_000_000) return `NPR ${(n / 10_000_000).toLocaleString(undefined, { maximumFractionDigits: 2 })} crore`;
+  if (n >= 100_000) return `NPR ${(n / 100_000).toLocaleString(undefined, { maximumFractionDigits: 2 })} lakh`;
+  return `NPR ${n.toLocaleString()}`;
+}
+
+function CategorySelect({ id, value, onChange, categories, invalid }: { id: string; value: string; onChange: (v: string) => void; categories: CategoryDTO[]; invalid?: boolean }) {
   return (
-    <Select id={id} value={value} onChange={(e) => onChange(e.target.value)}>
+    <Select id={id} value={value} onChange={(e) => onChange(e.target.value)} aria-invalid={invalid}>
       <option value="">No category</option>
       {categories.map((c) => (
         <optgroup key={c.id} label={c.name}>
@@ -200,6 +290,22 @@ function CategorySelect({ id, value, onChange, categories }: { id: string; value
   );
 }
 
+/** A field wrapper that tags its control with data-field (for jump-to-error). Defined at module level so
+ * inputs keep focus while typing. */
+function F({ field, label, hint, error, className, children }: { field: string; label?: string; hint?: string; error?: string; className?: string; children: (id: string) => ReactNode }) {
+  return (
+    <div data-field={field} className={className}>
+      <Field label={label ?? FIELDS[field]?.label ?? field} hint={hint} error={error}>
+        {children}
+      </Field>
+    </div>
+  );
+}
+
+/* ------------------------------------------------------------------ */
+/* Page                                                                */
+/* ------------------------------------------------------------------ */
+
 export function ListingEditPage() {
   const { id } = useParams();
   const isNew = !id || id === "new";
@@ -213,10 +319,17 @@ export function ListingEditPage() {
   const lead = useQuery({ queryKey: ["admin", "leads", "one", leadId], queryFn: () => adminApi.lead(leadId!), enabled: !!leadId });
 
   const [form, setForm] = useState<FormState>(blank);
+  const [baseline, setBaseline] = useState<FormState>(blank);
   const [loadedFor, setLoadedFor] = useState<string | null>(null);
+  const [tab, setTab] = useState<Tab>("essentials");
+  const [attempted, setAttempted] = useState(false);
+  const summaryRef = useRef<HTMLDivElement>(null);
+
   useEffect(() => {
     if (!isNew && listing.data && loadedFor !== listing.data.updatedAt) {
-      setForm(fromListing(listing.data));
+      const f = fromListing(listing.data);
+      setForm(f);
+      setBaseline(f);
       setLoadedFor(listing.data.updatedAt);
     }
     if (isNew && lead.data && categories.data && loadedFor !== lead.data.id) {
@@ -225,180 +338,353 @@ export function ListingEditPage() {
     }
   }, [isNew, listing.data, lead.data, categories.data, loadedFor]);
 
+  const dirty = JSON.stringify(form) !== JSON.stringify(baseline);
+  // Warn before closing the tab or reloading with unsaved changes.
+  useEffect(() => {
+    if (!dirty) return;
+    const warn = (e: BeforeUnloadEvent) => e.preventDefault();
+    window.addEventListener("beforeunload", warn);
+    return () => window.removeEventListener("beforeunload", warn);
+  }, [dirty]);
+
   const set = <K extends keyof FormState>(k: K, v: FormState[K]) => setForm((f) => ({ ...f, [k]: v }));
+  const setCity = (city: string) =>
+    setForm((f) => {
+      // Keep "shown on cards as" in step with the city unless someone wrote their own.
+      const auto = !f.location || f.location === `${f.city}, Nepal` || f.location === f.city;
+      return { ...f, city, location: auto ? (city ? `${city}, Nepal` : "") : f.location, country: f.country || "Nepal" };
+    });
 
   const save = useAdminMutation(
     (input: AdminListingInput) => (isNew ? adminApi.createListing(input) : adminApi.updateListing(id!, input)),
     [LISTINGS_KEY, ["admin", "leads"]],
     (saved) => {
       qc.setQueryData([...LISTINGS_KEY, "one", saved.id], saved);
+      const f = fromListing(saved);
+      setBaseline(f);
       if (isNew) navigate(`/listings/${saved.id}`, { replace: true });
     },
   );
+
+  const clientErrors = useMemo(() => validate(form), [form]);
+  const serverFields = save.error instanceof AdminApiError ? (save.error.fields ?? {}) : {};
+  const errors: Record<string, string> = attempted ? { ...serverFields, ...clientErrors } : serverFields;
+  const err = (field: string) => errors[field] ?? fieldError(save.error, field);
+  const errorCount = (t: Tab) => Object.keys(errors).filter((k) => FIELDS[k]?.tab === t).length;
+
   const submit = (e: FormEvent) => {
     e.preventDefault();
+    setAttempted(true);
+    const found = validate(form);
+    if (Object.keys(found).length) {
+      const first = Object.keys(found).find((k) => FIELDS[k]);
+      if (first) setTab(FIELDS[first]!.tab);
+      requestAnimationFrame(() => summaryRef.current?.focus());
+      return;
+    }
     save.mutate(toInput(form, leadId));
   };
-  const err = (field: string) => fieldError(save.error, field);
+
+  const jumpTo = (field: string) => {
+    const meta = FIELDS[field];
+    if (meta) setTab(meta.tab);
+    requestAnimationFrame(() => (document.querySelector(`[data-field="${field}"] input, [data-field="${field}"] textarea, [data-field="${field}"] select`) as HTMLElement | null)?.focus());
+  };
+
+  const leave = (e: React.MouseEvent) => {
+    if (dirty && !window.confirm("You have unsaved changes. Leave without saving?")) e.preventDefault();
+  };
 
   if (!isNew && listing.isLoading) return <div className="skeleton h-96 w-full rounded-card" aria-busy="true" />;
   if (!isNew && listing.isError) return <ErrorLine error={listing.error} />;
 
   const cats = categories.data ?? [];
   const l = listing.data;
+  const productCount = l?.products.length ?? 0;
+  const complete = completeness(form, productCount);
+  const errorList = Object.entries(errors).filter(([k]) => FIELDS[k]);
+
 
   return (
-    <>
-      <Link to="/listings" className="mb-3 inline-flex items-center gap-1 text-sm text-muted hover:text-ink">
+    <div className="mx-auto max-w-6xl">
+      <Link to="/listings" onClick={leave} className="mb-3 inline-flex items-center gap-1 text-sm text-muted hover:text-ink">
         <ArrowLeft className="h-4 w-4" aria-hidden /> Listings
       </Link>
-      <PageHeader title={isNew ? "New listing" : (l?.name ?? "Listing")} description={isNew ? (lead.data ? `Prefilled from lead ${lead.data.reference}. Check every field before saving.` : "Saved as a draft. Publish it once it's ready.") : undefined} />
+      <PageHeader
+        title={isNew ? "New listing" : (l?.name ?? "Listing")}
+        description={isNew ? (lead.data ? `Prefilled from lead ${lead.data.reference}. Check every field before saving.` : "Saved as a draft. Publish it once it's ready.") : undefined}
+      />
 
-      {l && <StatusPanel listing={l} />}
-
-      <form onSubmit={submit} className="mt-5 space-y-5" noValidate>
-        <Section title="Basics">
-          <Field label="Company name" error={err("name")} className="sm:col-span-2">
-            {(fid) => <TextInput id={fid} value={form.name} onChange={(e) => set("name", e.target.value)} maxLength={120} required />}
-          </Field>
-          <Field label="Business type" error={err("businessType")}>
-            {(fid) => (
-              <Select id={fid} value={form.businessType} onChange={(e) => set("businessType", e.target.value as FormState["businessType"])}>
-                {BUSINESS_TYPES.map((t) => (
-                  <option key={t} value={t}>
-                    {BUSINESS_TYPE_LABELS[t]}
-                  </option>
-                ))}
-              </Select>
+      <div className="mt-5 grid gap-6 lg:grid-cols-[minmax(0,1fr)_320px]">
+        <div className="min-w-0">
+          <form onSubmit={submit} noValidate>
+            {errorList.length > 0 && (
+              <div ref={summaryRef} tabIndex={-1} role="alert" className="mb-4 rounded-card border border-danger/30 bg-danger/5 p-4 text-sm outline-none">
+                <p className="flex items-center gap-2 font-semibold text-danger">
+                  <AlertTriangle className="h-4 w-4" aria-hidden /> {errorList.length === 1 ? "1 field needs attention" : `${errorList.length} fields need attention`}
+                </p>
+                <ul className="mt-2 space-y-1">
+                  {errorList.map(([k, msg]) => (
+                    <li key={k}>
+                      <button type="button" onClick={() => jumpTo(k)} className="text-left text-danger underline-offset-2 hover:underline">
+                        <strong className="font-medium">{FIELDS[k]!.label}</strong> ({TABS.find((t) => t.key === FIELDS[k]!.tab)!.label}): {msg}
+                      </button>
+                    </li>
+                  ))}
+                </ul>
+              </div>
             )}
-          </Field>
-          <Field label="Category" error={err("categoryId")} hint={t("Manufacturers appear under Brands.", form.businessType === "MANUFACTURER")}>
-            {(fid) => <CategorySelect id={fid} value={form.categoryId} onChange={(v) => set("categoryId", v)} categories={cats} />}
-          </Field>
-          <Field label="Summary" hint="One or two sentences shown on search cards (10–300 characters)." error={err("summary")} className="sm:col-span-2">
-            {(fid) => <TextArea id={fid} rows={2} value={form.summary} onChange={(e) => set("summary", e.target.value)} maxLength={300} />}
-          </Field>
-          <Field label="Description" hint="Full profile text (at least 20 characters)." error={err("description")} className="sm:col-span-2">
-            {(fid) => <TextArea id={fid} rows={6} value={form.description} onChange={(e) => set("description", e.target.value)} maxLength={5000} />}
-          </Field>
-        </Section>
 
-        <Section title="Location and coverage">
-          <Field label="Location" hint='Shown on cards, e.g. "Kathmandu, Nepal".' error={err("location")} className="sm:col-span-2">
-            {(fid) => <TextInput id={fid} value={form.location} onChange={(e) => set("location", e.target.value)} maxLength={120} />}
-          </Field>
-          <Field label="City" error={err("city")}>
-            {(fid) => <TextInput id={fid} value={form.city} onChange={(e) => set("city", e.target.value)} maxLength={80} />}
-          </Field>
-          <Field label="Country" error={err("country")}>
-            {(fid) => <TextInput id={fid} value={form.country} onChange={(e) => set("country", e.target.value)} maxLength={80} />}
-          </Field>
-          <Field label="Coverage" error={err("coverage")}>
-            {(fid) => (
-              <Select id={fid} value={form.coverage} onChange={(e) => set("coverage", e.target.value as FormState["coverage"])}>
-                {COVERAGE_SCOPES.map((c) => (
-                  <option key={c} value={c}>
-                    {COVERAGE_LABELS[c]}
-                  </option>
-                ))}
-              </Select>
-            )}
-          </Field>
-          <Field label="Territories served" hint="Separate with commas." error={err("territories")}>
-            {(fid) => <TextInput id={fid} value={form.territories} onChange={(e) => set("territories", e.target.value)} placeholder="Bagmati, Gandaki" />}
-          </Field>
-        </Section>
+            <div role="tablist" aria-label="Listing sections" className="scrollbar-none flex gap-1 overflow-x-auto border-b border-line">
+              {TABS.map((t) => {
+                const n = errorCount(t.key);
+                return (
+                  <button
+                    key={t.key}
+                    type="button"
+                    role="tab"
+                    id={`tab-${t.key}`}
+                    aria-selected={tab === t.key}
+                    aria-controls={`panel-${t.key}`}
+                    onClick={() => setTab(t.key)}
+                    className={cn(
+                      "-mb-px flex min-h-11 shrink-0 items-center gap-1.5 whitespace-nowrap border-b-2 px-4 text-sm font-medium transition-colors",
+                      tab === t.key ? "border-primary text-primary-dark" : "border-transparent text-body hover:text-ink",
+                    )}
+                  >
+                    {t.label}
+                    {n > 0 && <span className="rounded-full bg-danger px-1.5 text-[11px] font-bold text-white" aria-label={`${n} errors`}>{n}</span>}
+                  </button>
+                );
+              })}
+            </div>
 
-        <Section title="Contact" description="Enquiries are emailed to the notification email. It is never shown publicly.">
-          <Field label="Contact person" error={err("contactPerson")}>
-            {(fid) => <TextInput id={fid} value={form.contactPerson} onChange={(e) => set("contactPerson", e.target.value)} maxLength={120} />}
-          </Field>
-          <Field label="WhatsApp number" hint="With country code, e.g. +977 98XXXXXXXX. Shows a tracked WhatsApp button on the listing; the number itself is never printed on the site." error={err("whatsappNumber")}>
-            {(fid) => <TextInput id={fid} type="tel" value={form.whatsappNumber} onChange={(e) => set("whatsappNumber", e.target.value)} maxLength={24} placeholder="+977" />}
-          </Field>
-          <Field label="Notification email" error={err("notificationEmail")}>
-            {(fid) => <TextInput id={fid} type="email" value={form.notificationEmail} onChange={(e) => set("notificationEmail", e.target.value)} maxLength={200} />}
-          </Field>
-          <Field label="Website" hint="https://…" error={err("website")}>
-            {(fid) => <TextInput id={fid} type="url" value={form.website} onChange={(e) => set("website", e.target.value)} placeholder="https://" />}
-          </Field>
-          <Field label="Logo image link" hint="A https:// link to a square image." error={err("logoUrl")}>
-            {(fid) => <TextInput id={fid} type="url" value={form.logoUrl} onChange={(e) => set("logoUrl", e.target.value)} placeholder="https://" />}
-          </Field>
-        </Section>
+            <div id={`panel-${tab}`} role="tabpanel" aria-labelledby={`tab-${tab}`} className="rounded-b-card border border-t-0 border-line bg-surface p-4 shadow-card sm:p-6">
+              <p className="mb-5 text-sm text-muted">{TABS.find((t) => t.key === tab)!.hint}</p>
 
-        <Section title="Business details">
-          <Field label="Founded (year)" error={err("foundedYear")}>
-            {(fid) => <TextInput id={fid} inputMode="numeric" value={form.foundedYear} onChange={(e) => set("foundedYear", e.target.value.replace(/\D/g, "").slice(0, 4))} />}
-          </Field>
-          <Field label="Specialties" hint="Separate with commas." error={err("specialties")}>
-            {(fid) => <TextInput id={fid} value={form.specialties} onChange={(e) => set("specialties", e.target.value)} />}
-          </Field>
-          <Field label="Minimum order" error={err("minimumOrder")}>
-            {(fid) => <TextInput id={fid} value={form.minimumOrder} onChange={(e) => set("minimumOrder", e.target.value)} maxLength={300} />}
-          </Field>
-          <Field label="Support offered" error={err("supportOffered")}>
-            {(fid) => <TextInput id={fid} value={form.supportOffered} onChange={(e) => set("supportOffered", e.target.value)} maxLength={1000} />}
-          </Field>
-          <Field label="Distributorship terms" error={err("distributorshipInfo")} className="sm:col-span-2">
-            {(fid) => <TextArea id={fid} rows={3} value={form.distributorshipInfo} onChange={(e) => set("distributorshipInfo", e.target.value)} maxLength={2000} />}
-          </Field>
-          <Field label="Investment from" error={err("investmentMin")}>
-            {(fid) => <TextInput id={fid} inputMode="numeric" value={form.investmentMin} onChange={(e) => set("investmentMin", e.target.value.replace(/\D/g, ""))} />}
-          </Field>
-          <Field label="Investment up to" error={err("investmentMax")}>
-            {(fid) => <TextInput id={fid} inputMode="numeric" value={form.investmentMax} onChange={(e) => set("investmentMax", e.target.value.replace(/\D/g, ""))} />}
-          </Field>
-          <Field label="Currency" hint="3 letters, e.g. NPR or USD." error={err("investmentCurrency")}>
-            {(fid) => <TextInput id={fid} value={form.investmentCurrency} onChange={(e) => set("investmentCurrency", e.target.value.toUpperCase().slice(0, 3))} maxLength={3} />}
-          </Field>
-        </Section>
+              {tab === "essentials" && (
+                <div className="grid gap-4 sm:grid-cols-2">
+                  <F field="name" error={err("name")} className="sm:col-span-2">
+                    {(fid) => <TextInput id={fid} value={form.name} onChange={(e) => set("name", e.target.value)} maxLength={120} />}
+                  </F>
+                  <F field="businessType" error={err("businessType")} hint={form.businessType === "MANUFACTURER" ? "Manufacturers appear under Brands." : undefined}>
+                    {(fid) => (
+                      <Select id={fid} value={form.businessType} onChange={(e) => set("businessType", e.target.value as FormState["businessType"])}>
+                        {BUSINESS_TYPES.map((t) => (
+                          <option key={t} value={t}>
+                            {BUSINESS_TYPE_LABELS[t]}
+                          </option>
+                        ))}
+                      </Select>
+                    )}
+                  </F>
+                  <F field="categoryId" error={err("categoryId")}>{(fid) => <CategorySelect id={fid} value={form.categoryId} onChange={(v) => set("categoryId", v)} categories={cats} invalid={!!err("categoryId")} />}</F>
+                  <F field="city" error={err("city")}>{(fid) => <CityPicker id={fid} value={form.city} onChange={setCity} />}</F>
+                  <F field="location" error={err("location")} hint='Shown on search cards, e.g. "Pokhara, Nepal".'>
+                    {(fid) => <TextInput id={fid} value={form.location} onChange={(e) => set("location", e.target.value)} maxLength={120} />}
+                  </F>
+                  <F field="summary" error={err("summary")} hint={`One or two sentences for search cards. ${form.summary.trim().length}/300`} className="sm:col-span-2">
+                    {(fid) => <TextArea id={fid} rows={2} value={form.summary} onChange={(e) => set("summary", e.target.value)} maxLength={300} />}
+                  </F>
+                  <F field="description" error={err("description")} hint={`The full profile. ${form.description.trim().length} characters; 150+ reads well.`} className="sm:col-span-2">
+                    {(fid) => <TextArea id={fid} rows={6} value={form.description} onChange={(e) => set("description", e.target.value)} maxLength={5000} />}
+                  </F>
+                  <F field="whatsappNumber" error={err("whatsappNumber")} hint="With country code. Visitors reach it through a tracked button; the number is never printed.">
+                    {(fid) => <TextInput id={fid} type="tel" value={form.whatsappNumber} onChange={(e) => set("whatsappNumber", e.target.value)} maxLength={24} placeholder="+977 98XXXXXXXX" />}
+                  </F>
+                </div>
+              )}
 
-        <Section title="Trust and promotion">
-          <Field label="Verification" hint="Only claim what you have actually checked." error={err("verificationStatus")}>
-            {(fid) => (
-              <Select id={fid} value={form.verificationStatus} onChange={(e) => set("verificationStatus", e.target.value as FormState["verificationStatus"])}>
-                {VERIFICATION_STATUSES.map((v) => (
-                  <option key={v} value={v}>
-                    {VERIFICATION_LABELS[v]}
-                  </option>
-                ))}
-              </Select>
-            )}
-          </Field>
-          <Field label="Listed until" hint="End of the paid listing period. Required to publish; the listing hides itself after this date." error={err("listedUntil")}>
-            {(fid) => <TextInput id={fid} type="date" value={form.listedUntil} onChange={(e) => set("listedUntil", e.target.value)} />}
-          </Field>
-          <div className="sm:col-span-2">
-            <Toggle label="Featured" hint="Shown in the featured strip on search pages." checked={form.isFeatured} onChange={(v) => set("isFeatured", v)} />
-          </div>
-          {form.isFeatured && (
-            <Field label="Featured until" hint="Leave empty to feature with no end date." error={err("featuredUntil")}>
-              {(fid) => <TextInput id={fid} type="date" value={form.featuredUntil} onChange={(e) => set("featuredUntil", e.target.value)} />}
-            </Field>
-          )}
-        </Section>
+              {tab === "profile" && (
+                <div className="grid gap-4 sm:grid-cols-2">
+                  <F field="logoUrl" error={err("logoUrl")} hint="A https:// link to a square image.">
+                    {(fid) => <TextInput id={fid} type="url" value={form.logoUrl} onChange={(e) => set("logoUrl", e.target.value)} placeholder="https://" />}
+                  </F>
+                  <F field="website" error={err("website")}>{(fid) => <TextInput id={fid} type="url" value={form.website} onChange={(e) => set("website", e.target.value)} placeholder="https://" />}</F>
+                  <F field="contactPerson" error={err("contactPerson")}>{(fid) => <TextInput id={fid} value={form.contactPerson} onChange={(e) => set("contactPerson", e.target.value)} maxLength={120} />}</F>
+                  <F field="notificationEmail" error={err("notificationEmail")} hint="Enquiries are emailed here. Never shown publicly.">
+                    {(fid) => <TextInput id={fid} type="email" value={form.notificationEmail} onChange={(e) => set("notificationEmail", e.target.value)} maxLength={200} />}
+                  </F>
+                  <F field="coverage" error={err("coverage")}>
+                    {(fid) => (
+                      <Select id={fid} value={form.coverage} onChange={(e) => set("coverage", e.target.value as FormState["coverage"])}>
+                        {COVERAGE_SCOPES.map((c) => (
+                          <option key={c} value={c}>
+                            {COVERAGE_LABELS[c]}
+                          </option>
+                        ))}
+                      </Select>
+                    )}
+                  </F>
+                  <F field="country" error={err("country")}>{(fid) => <TextInput id={fid} value={form.country} onChange={(e) => set("country", e.target.value)} maxLength={80} />}</F>
+                  <F field="territories" error={err("territories")} hint="Press Enter after each place." className="sm:col-span-2">
+                    {(fid) => <TagInput id={fid} value={form.territories} onChange={(v) => set("territories", v)} max={50} placeholder={`e.g. ${NEPAL_CITIES.slice(0, 3).join(", ")}`} />}
+                  </F>
+                  <F field="specialties" error={err("specialties")} hint="What they're known for. Press Enter after each." className="sm:col-span-2">
+                    {(fid) => <TagInput id={fid} value={form.specialties} onChange={(v) => set("specialties", v)} placeholder="e.g. Cold chain, Retail coverage" />}
+                  </F>
+                  <F field="foundedYear" error={err("foundedYear")}>
+                    {(fid) => <TextInput id={fid} inputMode="numeric" value={form.foundedYear} onChange={(e) => set("foundedYear", e.target.value.replace(/\D/g, "").slice(0, 4))} placeholder="e.g. 2012" />}
+                  </F>
+                </div>
+              )}
 
-        <div className="sticky bottom-0 z-10 -mx-4 flex flex-wrap items-center gap-3 border-t border-line bg-surface/95 px-4 py-3 backdrop-blur sm:mx-0 sm:rounded-card sm:border">
-          <Button type="submit" disabled={save.isPending}>
-            <Check className="h-4 w-4" aria-hidden /> {save.isPending ? "Saving…" : isNew ? "Create draft" : "Save changes"}
-          </Button>
-          {save.isSuccess && !save.isPending && <span className="text-sm text-success">Saved.</span>}
-          {save.error && !Object.keys((save.error as { fields?: object }).fields ?? {}).length ? <ErrorLine error={save.error} /> : save.error ? <span className="text-sm text-danger">Check the highlighted fields.</span> : null}
+              {tab === "terms" && (
+                <div className="grid gap-4 sm:grid-cols-2">
+                  <F field="minimumOrder" error={err("minimumOrder")} hint="e.g. 50 cartons or NPR 1 lakh per order">
+                    {(fid) => <TextInput id={fid} value={form.minimumOrder} onChange={(e) => set("minimumOrder", e.target.value)} maxLength={300} />}
+                  </F>
+                  <F field="supportOffered" error={err("supportOffered")} hint="e.g. Marketing material, training, credit">
+                    {(fid) => <TextInput id={fid} value={form.supportOffered} onChange={(e) => set("supportOffered", e.target.value)} maxLength={1000} />}
+                  </F>
+                  <F field="distributorshipInfo" error={err("distributorshipInfo")} hint="Margins, exclusivity, payment terms." className="sm:col-span-2">
+                    {(fid) => <TextArea id={fid} rows={4} value={form.distributorshipInfo} onChange={(e) => set("distributorshipInfo", e.target.value)} maxLength={2000} />}
+                  </F>
+                  <div className="grid gap-4 sm:col-span-2 sm:grid-cols-[1fr_1fr_120px]">
+                    <F field="investmentMin" error={err("investmentMin")} hint={amountHint(form.investmentMin, form.investmentCurrency)}>
+                      {(fid) => <TextInput id={fid} inputMode="numeric" value={form.investmentMin} onChange={(e) => set("investmentMin", e.target.value.replace(/\D/g, ""))} placeholder="e.g. 500000" />}
+                    </F>
+                    <F field="investmentMax" error={err("investmentMax")} hint={amountHint(form.investmentMax, form.investmentCurrency)}>
+                      {(fid) => <TextInput id={fid} inputMode="numeric" value={form.investmentMax} onChange={(e) => set("investmentMax", e.target.value.replace(/\D/g, ""))} placeholder="e.g. 2000000" />}
+                    </F>
+                    <F field="investmentCurrency" error={err("investmentCurrency")} label="Currency">
+                      {(fid) => (
+                        <Select id={fid} value={form.investmentCurrency} onChange={(e) => set("investmentCurrency", e.target.value)}>
+                          {["NPR", "INR", "USD"].map((c) => (
+                            <option key={c}>{c}</option>
+                          ))}
+                        </Select>
+                      )}
+                    </F>
+                  </div>
+                </div>
+              )}
+
+              {tab === "publishing" && (
+                <div className="grid gap-4 sm:grid-cols-2">
+                  <F field="listedUntil" error={err("listedUntil")} hint="End of the paid listing period. Required to publish; the listing hides itself after this date.">
+                    {(fid) => <TextInput id={fid} type="date" value={form.listedUntil} onChange={(e) => set("listedUntil", e.target.value)} />}
+                  </F>
+                  <F field="verificationStatus" error={err("verificationStatus")} hint="Only claim what you have actually checked.">
+                    {(fid) => (
+                      <Select id={fid} value={form.verificationStatus} onChange={(e) => set("verificationStatus", e.target.value as FormState["verificationStatus"])}>
+                        {VERIFICATION_STATUSES.map((v) => (
+                          <option key={v} value={v}>
+                            {VERIFICATION_LABELS[v]}
+                          </option>
+                        ))}
+                      </Select>
+                    )}
+                  </F>
+                  <div className="sm:col-span-2">
+                    <Toggle label="Featured" hint="Shown in the featured strip on search pages." checked={form.isFeatured} onChange={(v) => set("isFeatured", v)} />
+                  </div>
+                  {form.isFeatured && (
+                    <F field="featuredUntil" error={err("featuredUntil")} hint="Leave empty to feature with no end date.">
+                      {(fid) => <TextInput id={fid} type="date" value={form.featuredUntil} onChange={(e) => set("featuredUntil", e.target.value)} />}
+                    </F>
+                  )}
+                </div>
+              )}
+
+              <div className="mt-6 flex items-center justify-between border-t border-line pt-4 text-sm">
+                {TABS.findIndex((t) => t.key === tab) > 0 ? (
+                  <button type="button" className="text-muted hover:text-ink" onClick={() => setTab(TABS[TABS.findIndex((t) => t.key === tab) - 1]!.key)}>
+                    ← {TABS[TABS.findIndex((t) => t.key === tab) - 1]!.label}
+                  </button>
+                ) : (
+                  <span />
+                )}
+                {TABS.findIndex((t) => t.key === tab) < TABS.length - 1 && (
+                  <button type="button" className="font-medium text-primary hover:text-primary-dark" onClick={() => setTab(TABS[TABS.findIndex((t) => t.key === tab) + 1]!.key)}>
+                    {TABS[TABS.findIndex((t) => t.key === tab) + 1]!.label} →
+                  </button>
+                )}
+              </div>
+            </div>
+
+            <div className="sticky bottom-0 z-10 -mx-4 mt-4 flex flex-wrap items-center gap-3 border-t border-line bg-surface/95 px-4 py-3 backdrop-blur sm:mx-0 sm:rounded-card sm:border">
+              <Button type="submit" disabled={save.isPending}>
+                <Check className="h-4 w-4" aria-hidden /> {save.isPending ? "Saving…" : isNew ? "Create draft" : "Save changes"}
+              </Button>
+              {dirty ? <span className="text-sm text-muted">Unsaved changes</span> : save.isSuccess ? <span className="text-sm text-success">All changes saved.</span> : null}
+              {save.error && !Object.keys(serverFields).length && <ErrorLine error={save.error} />}
+            </div>
+          </form>
+
+          {l && <ProductsSection listing={l} categories={cats} />}
         </div>
-      </form>
 
-      {l && <ProductsSection listing={l} categories={cats} />}
-    </>
+        <aside className="space-y-4 lg:sticky lg:top-4 lg:self-start">
+          {l ? <StatusPanel listing={l} /> : <Card className="text-sm text-muted">Create the draft first. Publishing, products and enquiries appear here once it's saved.</Card>}
+          <Card>
+            <div className="flex items-baseline justify-between">
+              <h2 className="text-sm font-semibold text-ink">Profile strength</h2>
+              <span className="text-sm font-semibold tabular-nums text-ink">{complete.score}%</span>
+            </div>
+            <div className="mt-2 h-2 rounded-full bg-primary-soft" role="meter" aria-valuenow={complete.score} aria-valuemin={0} aria-valuemax={100} aria-label="Profile strength">
+              <div className="h-2 rounded-full bg-primary transition-[width]" style={{ width: `${complete.score}%` }} />
+            </div>
+            {complete.missing.length > 0 && (
+              <ul className="mt-3 space-y-1 text-sm">
+                {complete.missing.slice(0, 4).map((m) => (
+                  <li key={m.label}>
+                    <button type="button" onClick={() => setTab(m.tab)} className="text-left text-body hover:text-primary">
+                      + {m.label}
+                    </button>
+                  </li>
+                ))}
+              </ul>
+            )}
+          </Card>
+          <Card>
+            <h2 className="text-sm font-semibold text-ink">Preview on the site</h2>
+            <ul className="pointer-events-none mt-3 select-none" aria-hidden inert>
+              <DistributorCard d={previewCard(form, cats, l)} view="grid" index={0} animate={false} onEnquire={() => undefined} />
+            </ul>
+          </Card>
+        </aside>
+      </div>
+    </div>
   );
 }
 
-const t = (text: string, show: boolean) => (show ? text : undefined);
+/** The public search card, built from the unsaved form so the preview matches what visitors will see. */
+function previewCard(f: FormState, cats: CategoryDTO[], l: AdminListingDTO | undefined): DistributorCardDTO {
+  const cat = cats.flatMap((c) => [c, ...c.children]).find((c) => c.id === f.categoryId);
+  return {
+    id: l?.id ?? "preview",
+    slug: l?.slug ?? "preview",
+    name: f.name || "Company name",
+    logoUrl: f.logoUrl.startsWith("https://") ? f.logoUrl : null,
+    summary: f.summary || "Your one or two sentence summary appears here.",
+    category: cat ? { slug: cat.slug, name: cat.name } : null,
+    location: f.location || "City, Nepal",
+    country: f.country || null,
+    businessType: f.businessType,
+    coverage: f.coverage,
+    verificationStatus: f.verificationStatus,
+    specialties: f.specialties.slice(0, 6),
+    isFeatured: f.isFeatured,
+    isDemo: false,
+    investmentMin: num(f.investmentMin),
+    investmentMax: num(f.investmentMax),
+    investmentCurrency: f.investmentCurrency || null,
+    productCount: l?.products.filter((p) => p.published).length ?? 0,
+    productPreview: l?.products.filter((p) => p.published).slice(0, 3).map((p) => p.name) ?? [],
+    hasWhatsapp: !!f.whatsappNumber.trim(),
+    createdAt: l?.createdAt ?? new Date().toISOString(),
+  };
+}
+
+/* ------------------------------------------------------------------ */
+/* Status and actions                                                  */
+/* ------------------------------------------------------------------ */
 
 function Check2({ ok, label }: { ok: boolean; label: string }) {
   return (
-    <li className={cn("flex items-center gap-2 text-sm", ok ? "text-ink" : "text-muted")}>
-      {ok ? <Check className="h-4 w-4 text-success" aria-hidden /> : <CircleSlash className="h-4 w-4 text-danger" aria-hidden />}
+    <li className={cn("flex items-start gap-2 text-sm", ok ? "text-ink" : "text-muted")}>
+      {ok ? <Check className="mt-0.5 h-4 w-4 shrink-0 text-success" aria-hidden /> : <CircleSlash className="mt-0.5 h-4 w-4 shrink-0 text-danger" aria-hidden />}
       {label}
     </li>
   );
@@ -416,17 +702,17 @@ function StatusPanel({ listing: l }: { listing: AdminListingDTO }) {
   const periodOk = v.subscriptionActive;
 
   return (
-    <Card className="mt-5">
+    <Card>
       <div className="flex flex-wrap items-center gap-2">
         <StatusBadge status={l.status} label={LISTING_STATUS_LABELS[l.status]} />
         {v.isPublic ? <StatusBadge status="LIVE" label="Visible on site" /> : <StatusBadge status="HIDDEN" label="Hidden from site" />}
-        <span className="text-xs text-muted">
-          /distributors/{l.slug} · {l.enquiryCount} enquiries · created {fmtDate(l.createdAt)}
-        </span>
       </div>
-      <ul className="mt-3 grid gap-1.5 sm:grid-cols-2">
+      <p className="mt-2 break-all text-xs text-muted">
+        /distributors/{l.slug} · {l.enquiryCount} enquiries · created {fmtDate(l.createdAt)}
+      </p>
+      <ul className="mt-3 space-y-1.5">
         <Check2 ok={v.approved && v.published} label="Published" />
-        <Check2 ok={periodOk} label={periodOk ? `Listing period current (until ${fmtDate(l.listedUntil)})` : "Listing period current (set 'Listed until' and save)"} />
+        <Check2 ok={periodOk} label={periodOk ? `Listing period current (until ${fmtDate(l.listedUntil)})` : "Listing period current: set 'Listed until' (Publishing tab) and save"} />
         <Check2 ok={v.profileApproved && v.organisationActive} label="Business profile approved" />
       </ul>
       <div className="mt-4 flex flex-wrap items-center gap-2">
@@ -464,23 +750,23 @@ function StatusPanel({ listing: l }: { listing: AdminListingDTO }) {
             </Link>
           </Button>
         )}
-        {superAdmin && (
-          <span className="ml-auto">
-            <DeleteButton what={`"${l.name}", its products and enquiries`} pending={remove.isPending} onConfirm={() => remove.mutate(undefined)} />
-          </span>
-        )}
       </div>
       {rejecting && (
-        <div className="mt-3 flex flex-wrap items-end gap-2">
-          <Field label="Reason (kept in the activity log)" className="min-w-0 flex-1">
-            {(fid) => <TextInput id={fid} value={reason} onChange={(e) => setReason(e.target.value)} maxLength={500} />}
-          </Field>
-          <Button size="sm" disabled={!reason.trim() || act.isPending} onClick={() => act.mutate({ action: "REJECT", reason: reason.trim() })}>
-            Confirm rejection
-          </Button>
-          <Button size="sm" variant="ghost" onClick={() => setRejecting(false)}>
-            Cancel
-          </Button>
+        <div className="mt-3 space-y-2">
+          <Field label="Reason (kept in the activity log)">{(fid) => <TextInput id={fid} value={reason} onChange={(e) => setReason(e.target.value)} maxLength={500} />}</Field>
+          <div className="flex gap-2">
+            <Button size="sm" disabled={!reason.trim() || act.isPending} onClick={() => act.mutate({ action: "REJECT", reason: reason.trim() })}>
+              Confirm rejection
+            </Button>
+            <Button size="sm" variant="ghost" onClick={() => setRejecting(false)}>
+              Cancel
+            </Button>
+          </div>
+        </div>
+      )}
+      {superAdmin && (
+        <div className="mt-4 border-t border-line pt-3">
+          <DeleteButton what={`"${l.name}", its products and enquiries`} pending={remove.isPending} onConfirm={() => remove.mutate(undefined)} />
         </div>
       )}
       <ErrorLine error={act.error ?? remove.error} />
@@ -488,7 +774,9 @@ function StatusPanel({ listing: l }: { listing: AdminListingDTO }) {
   );
 }
 
-/* ------------------------------ Products --------------------------- */
+/* ------------------------------------------------------------------ */
+/* Products                                                            */
+/* ------------------------------------------------------------------ */
 
 const blankProduct = { name: "", description: "", categoryId: "", packaging: "", priceLabel: "", published: true };
 type ProductForm = typeof blankProduct;
@@ -542,7 +830,12 @@ function ProductsSection({ listing, categories }: { listing: AdminListingDTO; ca
 function ProductRow({ listingId, product: p, categories }: { listingId: string; product: AdminProductDTO; categories: CategoryDTO[] }) {
   const [editing, setEditing] = useState(false);
   const remove = useAdminMutation(() => adminApi.deleteProduct(listingId, p.id), [LISTINGS_KEY]);
-  if (editing) return <li><ProductEditor listingId={listingId} product={p} categories={categories} onDone={() => setEditing(false)} /></li>;
+  if (editing)
+    return (
+      <li>
+        <ProductEditor listingId={listingId} product={p} categories={categories} onDone={() => setEditing(false)} />
+      </li>
+    );
   return (
     <li>
       <Card className="flex flex-wrap items-center gap-3">

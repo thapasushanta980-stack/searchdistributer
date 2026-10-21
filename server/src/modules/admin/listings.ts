@@ -169,7 +169,7 @@ export async function getListing(id: string, db: Tx | typeof prisma = prisma): P
     description: d.description,
     categoryId: d.categoryId,
     location: d.location,
-    city: d.city,
+    city: d.city ?? "",
     country: d.country,
     coverage: d.coverage,
     territories: d.territories,

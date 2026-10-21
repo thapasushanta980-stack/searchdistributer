@@ -282,3 +282,44 @@ export const splitList = (v: string) =>
     .split(",")
     .map((s) => s.trim())
     .filter(Boolean);
+
+/** Chips for short lists (territories, specialties): Enter or comma adds, Backspace on empty removes the last. */
+export function TagInput({ id, value, onChange, placeholder, max = 30, invalid }: { id: string; value: string[]; onChange: (v: string[]) => void; placeholder?: string; max?: number; invalid?: boolean }) {
+  const [draft, setDraft] = useState("");
+  const add = (raw: string) => {
+    const items = raw
+      .split(",")
+      .map((s) => s.trim())
+      .filter(Boolean);
+    const next = [...value];
+    for (const it of items) if (!next.some((x) => x.toLowerCase() === it.toLowerCase()) && next.length < max) next.push(it.slice(0, 80));
+    onChange(next);
+    setDraft("");
+  };
+  return (
+    <div className={cn("flex min-h-11 flex-wrap items-center gap-1.5 rounded-input border bg-surface px-2 py-1.5 focus-within:outline focus-within:outline-2 focus-within:outline-primary", invalid ? "border-danger" : "border-line-strong")}>
+      {value.map((t) => (
+        <span key={t} className="inline-flex items-center gap-1 rounded-full bg-primary-soft py-0.5 pl-2.5 pr-1 text-sm text-primary-dark">
+          {t}
+          <button type="button" onClick={() => onChange(value.filter((x) => x !== t))} aria-label={`Remove ${t}`} className="grid h-5 w-5 place-items-center rounded-full hover:bg-primary/15">
+            ×
+          </button>
+        </span>
+      ))}
+      <input
+        id={id}
+        value={draft}
+        onChange={(e) => (e.target.value.includes(",") ? add(e.target.value) : setDraft(e.target.value))}
+        onKeyDown={(e) => {
+          if (e.key === "Enter") {
+            e.preventDefault();
+            if (draft.trim()) add(draft);
+          } else if (e.key === "Backspace" && !draft && value.length) onChange(value.slice(0, -1));
+        }}
+        onBlur={() => draft.trim() && add(draft)}
+        placeholder={value.length ? "" : placeholder}
+        className="min-w-[8rem] flex-1 bg-transparent px-1 text-base text-ink outline-none sm:text-sm"
+      />
+    </div>
+  );
+}

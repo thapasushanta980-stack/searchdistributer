@@ -166,15 +166,33 @@ export const enquiryInputSchema = z.object({
 });
 export type EnquiryInput = z.input<typeof enquiryInputSchema>;
 
+/** Cities offered in location pickers, most active markets first; "Other" lets people type any place. */
+export const NEPAL_CITIES = [
+  "Kathmandu", "Lalitpur", "Bhaktapur", "Pokhara", "Biratnagar", "Birgunj", "Bharatpur", "Butwal", "Dharan", "Itahari",
+  "Hetauda", "Janakpur", "Nepalgunj", "Dhangadhi", "Bhairahawa", "Birtamod", "Damak", "Tulsipur", "Ghorahi", "Birendranagar",
+  "Mahendranagar", "Kirtipur", "Banepa", "Dhulikhel", "Tansen", "Baglung", "Gorkha", "Ilam", "Rajbiraj", "Lahan", "Kalaiya", "Gaur",
+] as const;
+export const OTHER_CITY = "Other";
+
+/** Registration intent is captured separately from the listing's detailed business type. */
+export const REGISTRATION_SIDES = ["BRAND", "DISTRIBUTOR"] as const;
+export type RegistrationSide = (typeof REGISTRATION_SIDES)[number];
+export const REGISTRATION_SIDE_LABELS: Record<RegistrationSide, string> = {
+  BRAND: "Brand / Manufacturer",
+  DISTRIBUTOR: "Distributor / Wholesaler / Dealer",
+};
+
 /** Email and message are optional on business registration and required on every other lead type. */
-function leadContactRules(v: { type: LeadType; email?: string; message: string }, ctx: z.RefinementCtx) {
+function leadContactRules(v: { type: LeadType; email?: string; message: string; location?: string }, ctx: z.RefinementCtx) {
   if (v.type !== "BUSINESS_REGISTRATION" && !v.email) ctx.addIssue({ code: z.ZodIssueCode.custom, path: ["email"], message: "Enter a valid email address" });
   if (v.type !== "BUSINESS_REGISTRATION" && v.message.length < 10) ctx.addIssue({ code: z.ZodIssueCode.custom, path: ["message"], message: "Please write at least 10 characters" });
+  if (v.type === "BUSINESS_REGISTRATION" && !v.location) ctx.addIssue({ code: z.ZodIssueCode.custom, path: ["location"], message: "Choose your city" });
 }
 
 export const leadInputSchema = z
   .object({
     type: z.enum(LEAD_TYPES),
+    registrationSide: z.enum(REGISTRATION_SIDES).optional(),
     name: z.string().trim().min(2, "Enter your name").max(100),
     companyName: z
       .string()
@@ -230,12 +248,21 @@ export type LeadInput = z.input<typeof leadInputSchema>;
  * (Cross-field checks only run once every other field is valid, so a form using leadInputSchema would
  * reveal "phone required" only on a second attempt.)
  */
-export const phoneRequiredLeadSchema = leadInputSchema
-  .innerType()
-  .extend({
-    phone: z.string().trim().min(1, "Enter a phone number so we can reach you").max(24).regex(phoneRegex, "Enter a valid phone number"),
-  })
-  .superRefine(leadContactRules);
+const requiredPhone = z.string().trim().min(1, "Enter a phone number so we can reach you").max(24).regex(phoneRegex, "Enter a valid phone number");
+
+/** Quick requirement forms (find distributors / become a distributor): phone, email and message required. */
+export const phoneRequiredLeadSchema = leadInputSchema.innerType().extend({
+  phone: requiredPhone,
+  email: z.string().trim().toLowerCase().email("Enter a valid email address").max(200),
+  message: z.string().trim().min(10, "Please write at least 10 characters").max(3000),
+});
+
+/** Business registration: phone and city required; email and description optional. */
+export const registrationLeadSchema = leadInputSchema.innerType().extend({
+  phone: requiredPhone,
+  location: z.string().trim().min(1, "Choose your city").max(120),
+  registrationSide: z.enum(REGISTRATION_SIDES),
+});
 
 /* ------------------------------------------------------------------ */
 /* API payload types                                                   */
@@ -766,6 +793,7 @@ export interface AdminLeadDTO {
   id: string;
   reference: string;
   type: LeadType;
+  registrationSide?: RegistrationSide | null;
   status: LeadStatus;
   name: string;
   companyName: string | null;
@@ -891,7 +919,7 @@ export const adminListingInputSchema = z
     description: z.string().trim().min(20, "Describe the business in a few sentences").max(5000),
     categoryId: z.string().uuid().nullable().optional().transform((v) => v ?? null),
     location: z.string().trim().min(2, "Enter where the business is based").max(120),
-    city: optText(80),
+    city: z.string().trim().min(1, "Choose a city").max(80),
     country: optText(80),
     coverage: z.enum(COVERAGE_SCOPES),
     territories: z.array(z.string().trim().min(1).max(80)).max(50).default([]),

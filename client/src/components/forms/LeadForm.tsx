@@ -2,10 +2,11 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import { useQuery } from "@tanstack/react-query";
 import { AlertCircle, CheckCircle2, Loader2 } from "lucide-react";
 import { useRef, useState } from "react";
-import { useForm } from "react-hook-form";
+import { Controller, useForm } from "react-hook-form";
 import { Link } from "react-router-dom";
 import type { z } from "zod";
-import { PHONE_REQUIRED_LEAD_TYPES, leadInputSchema, phoneRequiredLeadSchema, type LeadType } from "@sd/shared";
+import { PHONE_REQUIRED_LEAD_TYPES, REGISTRATION_SIDES, REGISTRATION_SIDE_LABELS, leadInputSchema, phoneRequiredLeadSchema, registrationLeadSchema, type LeadType, type RegistrationSide } from "@sd/shared";
+import { CityPicker } from "./CityPicker";
 import { Button } from "@/components/ui/button";
 import { Field, Input, Select, Textarea } from "@/components/ui/form";
 import { ApiError, submitLead } from "@/lib/api";
@@ -16,15 +17,16 @@ import { newKey } from "@/lib/utils";
 type FormIn = z.input<typeof leadInputSchema>;
 type FormOut = z.output<typeof leadInputSchema>;
 
-const COPY: Record<LeadType, { submit: string; message: string; messageHint: string; success: string; showCompany: boolean; showCategory: boolean; showLocation?: boolean; messageOptional?: boolean; emailOptional?: boolean }> = {
+const COPY: Record<LeadType, { submit: string; message: string; messageHint: string; success: string; showCompany: boolean; showCategory: boolean; showLocation?: boolean; cityPicker?: boolean; messageOptional?: boolean; emailOptional?: boolean }> = {
   BUSINESS_REGISTRATION: {
     submit: "Register interest",
     message: "About your business",
-    messageHint: "What you sell, where you operate and the distributors or markets you are looking for.",
+    messageHint: "One line about what you sell or want to distribute.",
     success: "Thanks. We received your business details. Profiles are reviewed before they are published, and publication depends on an active subscription.",
     showCompany: true,
     showCategory: true,
     showLocation: false,
+    cityPicker: true,
     messageOptional: true,
     emailOptional: true,
   },
@@ -62,14 +64,17 @@ export function LeadForm({ type }: { type: LeadType }) {
   const key = useRef(newKey());
   const [reference, setReference] = useState<string | null>(null);
   const [banner, setBanner] = useState<string | null>(null);
+  const [registrationSide, setRegistrationSide] = useState<RegistrationSide | "">("");
 
   const {
     register,
     handleSubmit,
     setError,
+    control,
     formState: { errors, isSubmitting },
   } = useForm<FormIn, unknown, FormOut>({
-    resolver: zodResolver(PHONE_REQUIRED_LEAD_TYPES.includes(type) ? phoneRequiredLeadSchema : leadInputSchema),
+    // Each form type gets a schema whose required fields are plain fields, so every error shows on the first submit.
+    resolver: zodResolver(type === "BUSINESS_REGISTRATION" ? registrationLeadSchema : PHONE_REQUIRED_LEAD_TYPES.includes(type) ? phoneRequiredLeadSchema : leadInputSchema),
     mode: "onTouched",
     defaultValues: { type, name: "", companyName: "", email: "", phone: "", categorySlug: "", location: "", message: "", consent: false as unknown as true, idempotencyKey: key.current, website: "" },
   });
@@ -77,7 +82,7 @@ export function LeadForm({ type }: { type: LeadType }) {
   const onSubmit = handleSubmit(async (values) => {
     setBanner(null);
     try {
-      setReference((await submitLead({ ...values, idempotencyKey: key.current })).reference);
+      setReference((await submitLead({ ...values, ...(type === "BUSINESS_REGISTRATION" ? { registrationSide: registrationSide as RegistrationSide } : {}), idempotencyKey: key.current })).reference);
     } catch (err) {
       if (err instanceof ApiError) {
         if (err.fields) for (const [f, m] of Object.entries(err.fields)) setError(f as keyof FormIn, { message: m });
@@ -95,9 +100,10 @@ export function LeadForm({ type }: { type: LeadType }) {
         <p className="mt-4 text-sm">
           Reference <strong className="font-mono">{reference}</strong>
         </p>
-        <Button asChild className="mt-6">
-          <Link to="/distributors">Back to search</Link>
-        </Button>
+        <div className="mt-6 flex flex-wrap justify-center gap-3">
+          <Button asChild variant="secondary"><Link to="/distributors">Back to search</Link></Button>
+          <a className="inline-flex min-h-11 items-center rounded-button bg-primary px-5 font-medium text-white hover:bg-primary-dark" href="/go/support" target="_blank" rel="noopener nofollow">WhatsApp our team</a>
+        </div>
       </div>
     );
   }
@@ -118,6 +124,19 @@ export function LeadForm({ type }: { type: LeadType }) {
           <AlertCircle className="mt-0.5 h-4 w-4 shrink-0" aria-hidden />
           <p>{banner}</p>
         </div>
+      )}
+      {type === "BUSINESS_REGISTRATION" && (
+        <section aria-labelledby="registration-side" className="space-y-2">
+          <h2 id="registration-side" className="text-sm font-medium text-ink">Which side are you?</h2>
+          <div className="grid gap-3 sm:grid-cols-2">
+            {REGISTRATION_SIDES.map((side) => (
+              <button key={side} type="button" aria-pressed={registrationSide === side} onClick={() => setRegistrationSide(side)} className={`min-h-16 rounded-xl border px-4 text-left font-semibold transition-colors ${registrationSide === side ? "border-primary bg-primary-soft text-primary" : "border-line bg-white text-ink hover:border-primary/50"}`}>
+                {REGISTRATION_SIDE_LABELS[side]}
+              </button>
+            ))}
+          </div>
+          {!registrationSide && <p role="alert" className="text-xs text-danger">Choose the side that best describes your business.</p>}
+        </section>
       )}
       <div className="grid gap-4 sm:grid-cols-2">
         <Field label="Your name" error={errors.name?.message}>
@@ -149,6 +168,17 @@ export function LeadForm({ type }: { type: LeadType }) {
             )}
           </Field>
         )}
+        {copy.cityPicker && (
+          <Field label="City" error={errors.location?.message}>
+            {({ id, describedBy, invalid }) => (
+              <Controller
+                control={control}
+                name="location"
+                render={({ field }) => <CityPicker id={id} value={field.value ?? ""} onChange={field.onChange} onBlur={field.onBlur} invalid={invalid} describedBy={describedBy} />}
+              />
+            )}
+          </Field>
+        )}
         {copy.showLocation !== false && (
           <Field label="Location" optional error={errors.location?.message}>
             {({ id, describedBy, invalid }) => <Input id={id} aria-invalid={invalid} aria-describedby={describedBy} {...register("location")} />}
@@ -158,6 +188,7 @@ export function LeadForm({ type }: { type: LeadType }) {
       <Field label={copy.message} optional={copy.messageOptional} hint={copy.messageHint} error={errors.message?.message}>
         {({ id, describedBy, invalid }) => <Textarea id={id} rows={5} aria-invalid={invalid} aria-describedby={describedBy} {...register("message")} />}
       </Field>
+      {type === "BUSINESS_REGISTRATION" && <aside className="rounded-xl bg-primary-soft/50 p-4 text-sm text-body"><h2 className="font-semibold text-ink">What happens next</h2><p className="mt-1">Our team calls you, reviews your details and helps prepare your listing before it goes live.</p></aside>}
       <div>
         <label className="flex cursor-pointer items-start gap-3 text-sm text-slate-700">
           <input type="checkbox" className="mt-0.5 h-[18px] w-[18px] shrink-0 rounded accent-[#3156D3]" aria-invalid={!!errors.consent} {...register("consent")} />

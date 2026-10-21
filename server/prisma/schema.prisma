@@ -291,6 +291,7 @@ model Lead {
   id             String   @id @default(uuid())
   reference      String   @unique
   type           LeadType
+  registrationSide String?
   idempotencyKey String   @unique
   name           String
   companyName    String?
