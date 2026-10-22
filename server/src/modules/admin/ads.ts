@@ -78,7 +78,8 @@ export async function getAd(id: string): Promise<AdminAdDTO> {
 export async function createAd(input: AdminAdInput, actor: Actor): Promise<AdminAdDTO> {
   const a = await prisma.$transaction(async (tx) => {
     const created = await tx.adCampaign.create({ data: { ...fields(input), status: "DRAFT" } });
-    await audit({ adminId: actor.id, action: "ad.create", entityType: "AdCampaign", entityId: created.id, meta: { advertiser: created.advertiserName, placement: created.placement }, ip: actor.ip }, tx);
+    if (input.fromLeadId) await tx.lead.updateMany({ where: { id: input.fromLeadId, type: "ADVERTISING" }, data: { status: "CONVERTED" } });
+    await audit({ adminId: actor.id, action: "ad.create", entityType: "AdCampaign", entityId: created.id, meta: { advertiser: created.advertiserName, placement: created.placement, fromLeadId: input.fromLeadId ?? null }, ip: actor.ip }, tx);
     return created;
   });
   return getAd(a.id);

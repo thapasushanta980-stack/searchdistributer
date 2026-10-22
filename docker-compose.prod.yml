@@ -25,6 +25,14 @@ services:
       SUPPORT_PHONE: ${SUPPORT_PHONE:-}
       SUPPORT_WHATSAPP: ${SUPPORT_WHATSAPP:-}
       SITE_NAME: ${SITE_NAME:-Search Distributor}
+      # S3-compatible object storage. MEDIA_PUBLIC_URL is the URL browsers use,
+      # while MEDIA_ENDPOINT is the private S3 API endpoint used by the server.
+      MEDIA_BUCKET: ${MEDIA_BUCKET:-}
+      MEDIA_REGION: ${MEDIA_REGION:-auto}
+      MEDIA_ENDPOINT: ${MEDIA_ENDPOINT:-}
+      MEDIA_ACCESS_KEY_ID: ${MEDIA_ACCESS_KEY_ID:-}
+      MEDIA_SECRET_ACCESS_KEY: ${MEDIA_SECRET_ACCESS_KEY:-}
+      MEDIA_PUBLIC_URL: ${MEDIA_PUBLIC_URL:-}
     ports:
       - "${APP_PORT:-3000}:3000"
   db:

@@ -28,6 +28,20 @@ import type {
 
 const BASE = "/api/admin/v1";
 
+export type MediaKind = "logo" | "cover" | "gallery" | "product" | "ad";
+
+async function uploadImage(kind: MediaKind, file: File): Promise<{ url: string; width: number; height: number }> {
+  const res = await fetch(`${BASE}/media/${kind}`, {
+    method: "POST",
+    credentials: "same-origin",
+    headers: { "X-SD-Admin": "1", "Content-Type": file.type },
+    body: file,
+  });
+  const json = (await res.json().catch(() => null)) as { data?: { url: string; width: number; height: number }; error?: { message?: string } } | null;
+  if (!res.ok || !json?.data) throw new AdminApiError(res.status, "MEDIA_UPLOAD_FAILED", json?.error?.message ?? "Image upload failed.");
+  return json.data;
+}
+
 export const ME_KEY = ["admin", "me"] as const;
 
 export class AdminApiError extends Error {
@@ -62,6 +76,7 @@ async function request<T>(path: string, init: { method?: string; body?: unknown 
 export type RequirementStatus = AdminRequirementDTO["status"];
 
 export const adminApi = {
+  uploadImage,
   /** Resolves to null when nobody is signed in. */
   me: async (): Promise<AdminMeDTO | null> => {
     try {

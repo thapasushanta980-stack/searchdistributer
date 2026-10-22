@@ -22,9 +22,7 @@ import { NotFoundPage } from "./NotFoundPage";
 export function ProductTile({ p }: { p: ProductListItemDTO }) {
   return (
     <li className="group/p flex min-w-0 flex-col overflow-hidden rounded-card border border-line bg-surface shadow-card transition-[box-shadow,transform,border-color] duration-200 hover:-translate-y-1 hover:border-line-strong hover:shadow-card-hover">
-      <div className="flex h-24 items-center justify-center bg-gradient-to-br from-slate-50 to-primary-soft/60 text-slate-300" aria-hidden>
-        <Package className="h-10 w-10" />
-      </div>
+      {p.imageUrls[0] ? <img src={p.imageUrls[0]} alt={`${p.name} product photo`} loading="lazy" className="h-24 w-full bg-white object-contain" /> : <div className="flex h-24 items-center justify-center bg-gradient-to-br from-slate-50 to-primary-soft/60 text-slate-300" aria-hidden><Package className="h-10 w-10" /></div>}
       <div className="flex flex-1 flex-col p-3 sm:p-4">
         {p.category && <p className="text-xs font-semibold uppercase tracking-wide text-primary">{p.category.name}</p>}
         <h3 className="mt-1 line-clamp-2 text-sm sm:text-base">
@@ -215,9 +213,7 @@ export function ProductDetailPage() {
       <div className="container-page py-8 sm:py-10">
         <Breadcrumbs items={[{ name: "Home", to: "/" }, { name: "Products", to: "/products" }, ...(p.category ? [{ name: p.category.name, to: `/categories/${p.category.slug}` }] : []), { name: p.name }]} />
         <div className="mt-4 grid grid-cols-[minmax(0,1fr)] gap-6 pb-24 sm:mt-8 sm:gap-8 lg:grid-cols-[1.1fr_1fr] lg:pb-0">
-          <div className="flex aspect-[4/3] items-center justify-center rounded-card border border-line bg-gradient-to-br from-slate-50 to-primary-soft/60 text-slate-300" role="img" aria-label="Product image not provided yet">
-            <Package className="h-20 w-20" aria-hidden />
-          </div>
+          {p.imageUrls.length > 0 ? <div><img src={p.imageUrls[0]} alt={`${p.name} product photo`} className="aspect-[4/3] w-full rounded-card border border-line object-contain bg-white" />{p.imageUrls.length > 1 && <ul className="mt-3 grid grid-cols-4 gap-2">{p.imageUrls.slice(1).map((src, i) => <li key={src}><img src={src} alt={`${p.name} photo ${i + 2}`} loading="lazy" className="aspect-square w-full rounded-lg border border-line object-cover" /></li>)}</ul>}</div> : <div className="flex aspect-[4/3] items-center justify-center rounded-card border border-line bg-gradient-to-br from-slate-50 to-primary-soft/60 text-slate-300" role="img" aria-label="Product image not provided yet"><Package className="h-20 w-20" aria-hidden /></div>}
           <div>
             {p.category && <p className="text-xs font-semibold uppercase tracking-wide text-primary">{p.category.name}</p>}
             <h1 className="mt-2 text-2xl sm:text-4xl">{p.name}</h1>

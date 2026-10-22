@@ -191,6 +191,8 @@ export async function getDistributorBySlug(slug: string): Promise<DistributorDet
   return {
     ...toCard(d, isFeaturedNow(d, now), d._count.products, d.products.slice(0, 3).map((p) => p.name)),
     description: d.description,
+    coverImageUrl: d.coverImageUrl,
+    galleryImageUrls: d.galleryImageUrls,
     website: d.website,
     contactPerson: d.contactPerson,
     territories: d.territories,

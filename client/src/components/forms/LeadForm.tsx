@@ -5,7 +5,7 @@ import { useRef, useState } from "react";
 import { Controller, useForm } from "react-hook-form";
 import { Link } from "react-router-dom";
 import type { z } from "zod";
-import { PHONE_REQUIRED_LEAD_TYPES, REGISTRATION_SIDES, REGISTRATION_SIDE_LABELS, leadInputSchema, phoneRequiredLeadSchema, registrationLeadSchema, type LeadType, type RegistrationSide } from "@sd/shared";
+import { AD_PLACEMENTS, AD_PLACEMENT_LABELS, PHONE_REQUIRED_LEAD_TYPES, REGISTRATION_SIDES, REGISTRATION_SIDE_LABELS, advertisingLeadSchema, leadInputSchema, phoneRequiredLeadSchema, registrationLeadSchema, type LeadType } from "@sd/shared";
 import { CityPicker } from "./CityPicker";
 import { Button } from "@/components/ui/button";
 import { Field, Input, Select, Textarea } from "@/components/ui/form";
@@ -17,7 +17,7 @@ import { newKey } from "@/lib/utils";
 type FormIn = z.input<typeof leadInputSchema>;
 type FormOut = z.output<typeof leadInputSchema>;
 
-const COPY: Record<LeadType, { submit: string; message: string; messageHint: string; success: string; showCompany: boolean; showCategory: boolean; showLocation?: boolean; cityPicker?: boolean; messageOptional?: boolean; emailOptional?: boolean }> = {
+const COPY: Record<LeadType, { submit: string; message: string; messageHint: string; success: string; showCompany: boolean; showCategory: boolean; showPlacement?: boolean; showLocation?: boolean; cityPicker?: boolean; messageOptional?: boolean; emailOptional?: boolean }> = {
   BUSINESS_REGISTRATION: {
     submit: "Register interest",
     message: "About your business",
@@ -55,6 +55,18 @@ const COPY: Record<LeadType, { submit: string; message: string; messageHint: str
     showCompany: true,
     showCategory: true,
   },
+  ADVERTISING: {
+    submit: "Request advertising info",
+    message: "Anything else?",
+    messageHint: "Optional. Add a short note for the team.",
+    success: "Thanks. Our team will contact you about available advertising placements.",
+    showCompany: true,
+    showCategory: false,
+    showPlacement: true,
+    showLocation: false,
+    messageOptional: true,
+    emailOptional: true,
+  },
 };
 
 export function LeadForm({ type }: { type: LeadType }) {
@@ -64,25 +76,27 @@ export function LeadForm({ type }: { type: LeadType }) {
   const key = useRef(newKey());
   const [reference, setReference] = useState<string | null>(null);
   const [banner, setBanner] = useState<string | null>(null);
-  const [registrationSide, setRegistrationSide] = useState<RegistrationSide | "">("");
 
   const {
     register,
     handleSubmit,
     setError,
     control,
+    setValue,
+    watch,
     formState: { errors, isSubmitting },
   } = useForm<FormIn, unknown, FormOut>({
     // Each form type gets a schema whose required fields are plain fields, so every error shows on the first submit.
-    resolver: zodResolver(type === "BUSINESS_REGISTRATION" ? registrationLeadSchema : PHONE_REQUIRED_LEAD_TYPES.includes(type) ? phoneRequiredLeadSchema : leadInputSchema),
+    resolver: zodResolver(type === "BUSINESS_REGISTRATION" ? registrationLeadSchema : type === "ADVERTISING" ? advertisingLeadSchema : PHONE_REQUIRED_LEAD_TYPES.includes(type) ? phoneRequiredLeadSchema : leadInputSchema),
     mode: "onTouched",
     defaultValues: { type, name: "", companyName: "", email: "", phone: "", categorySlug: "", location: "", message: "", consent: false as unknown as true, idempotencyKey: key.current, website: "" },
   });
+  const registrationSide = watch("registrationSide") ?? "";
 
   const onSubmit = handleSubmit(async (values) => {
     setBanner(null);
     try {
-      setReference((await submitLead({ ...values, ...(type === "BUSINESS_REGISTRATION" ? { registrationSide: registrationSide as RegistrationSide } : {}), idempotencyKey: key.current })).reference);
+      setReference((await submitLead({ ...values, idempotencyKey: key.current })).reference);
     } catch (err) {
       if (err instanceof ApiError) {
         if (err.fields) for (const [f, m] of Object.entries(err.fields)) setError(f as keyof FormIn, { message: m });
@@ -130,7 +144,7 @@ export function LeadForm({ type }: { type: LeadType }) {
           <h2 id="registration-side" className="text-sm font-medium text-ink">Which side are you?</h2>
           <div className="grid gap-3 sm:grid-cols-2">
             {REGISTRATION_SIDES.map((side) => (
-              <button key={side} type="button" aria-pressed={registrationSide === side} onClick={() => setRegistrationSide(side)} className={`min-h-16 rounded-xl border px-4 text-left font-semibold transition-colors ${registrationSide === side ? "border-primary bg-primary-soft text-primary" : "border-line bg-white text-ink hover:border-primary/50"}`}>
+              <button key={side} type="button" aria-pressed={registrationSide === side} onClick={() => setValue("registrationSide", side, { shouldValidate: true, shouldDirty: true })} className={`min-h-16 rounded-xl border px-4 text-left font-semibold transition-colors ${registrationSide === side ? "border-primary bg-primary-soft text-primary" : "border-line bg-white text-ink hover:border-primary/50"}`}>
                 {REGISTRATION_SIDE_LABELS[side]}
               </button>
             ))}
@@ -168,6 +182,9 @@ export function LeadForm({ type }: { type: LeadType }) {
             )}
           </Field>
         )}
+        {copy.showPlacement && <Field label="Where would you like your ad?" error={errors.adPlacement?.message}>
+          {({ id, describedBy, invalid }) => <Select id={id} aria-invalid={invalid} aria-describedby={describedBy} {...register("adPlacement")}><option value="">Choose a placement</option>{AD_PLACEMENTS.map((p) => <option key={p} value={p}>{AD_PLACEMENT_LABELS[p]}</option>)}</Select>}
+        </Field>}
         {copy.cityPicker && (
           <Field label="City" error={errors.location?.message}>
             {({ id, describedBy, invalid }) => (
@@ -185,9 +202,9 @@ export function LeadForm({ type }: { type: LeadType }) {
           </Field>
         )}
       </div>
-      <Field label={copy.message} optional={copy.messageOptional} hint={copy.messageHint} error={errors.message?.message}>
+      {type !== "BUSINESS_REGISTRATION" && <Field label={copy.message} optional={copy.messageOptional} hint={copy.messageHint} error={errors.message?.message}>
         {({ id, describedBy, invalid }) => <Textarea id={id} rows={5} aria-invalid={invalid} aria-describedby={describedBy} {...register("message")} />}
-      </Field>
+      </Field>}
       {type === "BUSINESS_REGISTRATION" && <aside className="rounded-xl bg-primary-soft/50 p-4 text-sm text-body"><h2 className="font-semibold text-ink">What happens next</h2><p className="mt-1">Our team calls you, reviews your details and helps prepare your listing before it goes live.</p></aside>}
       <div>
         <label className="flex cursor-pointer items-start gap-3 text-sm text-slate-700">

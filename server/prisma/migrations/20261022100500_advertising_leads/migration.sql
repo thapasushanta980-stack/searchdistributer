@@ -1,0 +1,2 @@
+ALTER TYPE "LeadType" ADD VALUE 'ADVERTISING';
+ALTER TABLE "leads" ADD COLUMN "adPlacement" TEXT;

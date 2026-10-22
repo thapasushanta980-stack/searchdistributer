@@ -2,9 +2,11 @@ import { Router } from "express";
 import { z } from "zod";
 import {
   AD_PLACEMENTS,
+  advertisingLeadSchema,
   distributorSearchSchema,
   enquiryInputSchema,
   leadInputSchema,
+  registrationLeadSchema,
   parseProductSearch,
   parseRequirementSearch,
   requirementInputSchema,
@@ -215,7 +217,8 @@ api.post(
   "/leads",
   writeLimiter,
   ah(async (req, res) => {
-    const input = parseOrThrow(leadInputSchema, req.body);
+    const schema = req.body?.type === "BUSINESS_REGISTRATION" ? registrationLeadSchema : req.body?.type === "ADVERTISING" ? advertisingLeadSchema : leadInputSchema;
+    const input = parseOrThrow(schema, req.body);
     res.status(201).json(await submitLead(input));
     if (!input.website) recordEvent(req, { type: "LEAD", categorySlug: input.categorySlug ?? null });
   }),

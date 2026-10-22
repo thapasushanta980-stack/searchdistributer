@@ -40,6 +40,7 @@ export function toProduct(p: Product & { category: Pick<Category, "slug" | "name
     publicSlug: p.publicSlug,
     name: p.name,
     description: p.description,
+    imageUrls: p.imageUrls,
     category: p.category ? { slug: p.category.slug, name: p.category.name } : null,
     packaging: p.packaging,
     priceLabel: p.priceLabel,

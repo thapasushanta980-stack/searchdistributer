@@ -110,9 +110,10 @@ export function AdvertisingPage() {
         </ul>
         <p className="mt-6 max-w-2xl text-sm text-muted">Prices, availability and creative specifications are agreed per booking and are not published here. Advertising is arranged with our team for now; self-service booking is planned.</p>
       </section>
-      <Button asChild size="lg" className="mt-8">
-        <Link to="/contact">Request a placement</Link>
-      </Button>
+      <section aria-labelledby="ad-request" className="mt-10 max-w-2xl">
+        <h2 id="ad-request" className="mb-4 text-2xl">Request advertising information</h2>
+        <LazyLeadForm type="ADVERTISING" />
+      </section>
     </InfoLayout>
   );
 }
