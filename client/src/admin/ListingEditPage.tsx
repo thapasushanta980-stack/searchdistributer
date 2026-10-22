@@ -19,9 +19,7 @@ import {
   type AdminProductDTO,
   type AdminProductInput,
   type CategoryDTO,
-  type DistributorCardDTO,
 } from "@sd/shared";
-import { DistributorCard } from "@/components/distributors/DistributorCard";
 import { CityPicker } from "@/components/forms/CityPicker";
 import { ImageGalleryUpload, ImageUpload } from "./ImageUpload";
 import { Button } from "@/components/ui/button";
@@ -648,44 +646,43 @@ export function ListingEditPage() {
               </ul>
             )}
           </Card>
-          <Card>
-            <h2 className="text-sm font-semibold text-ink">Preview on the site</h2>
-            <ul className="pointer-events-none mt-3 select-none" aria-hidden inert>
-              <DistributorCard d={previewCard(form, cats, l)} view="grid" index={0} animate={false} onEnquire={() => undefined} />
-            </ul>
+          <Card className="overflow-hidden p-0 sm:p-0">
+            <div className="flex items-start justify-between gap-3 px-4 pt-4 sm:px-5 sm:pt-5">
+              <div>
+                <p className="text-[11px] font-bold uppercase tracking-[0.14em] text-primary">Visitor view</p>
+                <h2 className="mt-1 text-sm font-semibold text-ink">Profile preview</h2>
+              </div>
+              <span className="rounded-full border border-line bg-white px-2.5 py-1 text-[11px] font-medium text-muted">Live</span>
+            </div>
+            <div className="m-4 overflow-hidden rounded-xl border border-line bg-white shadow-sm sm:m-5">
+              <div className="relative h-20 overflow-hidden bg-gradient-to-br from-slate-900 via-indigo-950 to-blue-800">
+                {form.coverImageUrl && <img src={form.coverImageUrl} alt="" className="absolute inset-0 h-full w-full object-cover" />}
+                <div className="absolute inset-0 bg-gradient-to-t from-slate-950/45 to-transparent" />
+              </div>
+              <div className="px-3 pb-3">
+                <div className="-mt-6 flex items-end justify-between gap-2">
+                  <div className="rounded-xl border-2 border-white bg-white shadow-sm">
+                    {form.logoUrl ? <img src={form.logoUrl} alt="" className="h-12 w-12 rounded-[10px] object-contain p-1" /> : <div className="flex h-12 w-12 items-center justify-center rounded-[10px] bg-primary-soft text-sm font-bold text-primary-dark">{(form.name || "BN").trim().split(/\s+/).slice(0, 2).map((word) => word[0]).join("").toUpperCase()}</div>}
+                  </div>
+                  <span className="mb-1 rounded-full bg-slate-100 px-2 py-1 text-[10px] font-semibold text-slate-600">{BUSINESS_TYPE_LABELS[form.businessType]}</span>
+                </div>
+                <p className="mt-2 truncate text-[11px] font-semibold uppercase tracking-wide text-primary">{cats.flatMap((c) => [c, ...c.children]).find((c) => c.id === form.categoryId)?.name ?? "Business category"}</p>
+                <p className="mt-0.5 truncate text-base font-bold text-slate-950">{form.name || "Your business name"}</p>
+                <p className="mt-1 line-clamp-2 min-h-9 text-xs leading-relaxed text-muted">{form.summary || "A short introduction helps distributors understand your business."}</p>
+                <div className="mt-2 flex items-center gap-1.5 border-t border-slate-100 pt-2 text-[11px] text-slate-600">
+                  <span className="truncate">{form.city || "City"}, {form.country || "Nepal"}</span><span aria-hidden>·</span><span className="truncate">{COVERAGE_LABELS[form.coverage]}</span>
+                </div>
+                {form.specialties.length > 0 && <div className="mt-2 flex flex-wrap gap-1">{form.specialties.slice(0, 2).map((tag) => <span key={tag} className="rounded-md bg-slate-100 px-1.5 py-0.5 text-[10px] text-slate-600">{tag}</span>)}</div>}
+              </div>
+            </div>
+            <div className="border-t border-line bg-slate-50/70 px-4 py-3 sm:px-5">
+              {l?.visibility.isPublic ? <a href={`/distributors/${l.slug}`} target="_blank" rel="noreferrer" className="inline-flex items-center gap-1.5 text-xs font-semibold text-primary hover:text-primary-dark"><ExternalLink className="h-3.5 w-3.5" aria-hidden /> Open public profile</a> : <p className="text-xs leading-relaxed text-muted">This preview updates as you edit. Publish the listing to make it visible to visitors.</p>}
+            </div>
           </Card>
         </aside>
       </div>
     </div>
   );
-}
-
-/** The public search card, built from the unsaved form so the preview matches what visitors will see. */
-function previewCard(f: FormState, cats: CategoryDTO[], l: AdminListingDTO | undefined): DistributorCardDTO {
-  const cat = cats.flatMap((c) => [c, ...c.children]).find((c) => c.id === f.categoryId);
-  return {
-    id: l?.id ?? "preview",
-    slug: l?.slug ?? "preview",
-    name: f.name || "Company name",
-    logoUrl: f.logoUrl.startsWith("https://") ? f.logoUrl : null,
-    summary: f.summary || "Your one or two sentence summary appears here.",
-    category: cat ? { slug: cat.slug, name: cat.name } : null,
-    location: f.location || "City, Nepal",
-    country: f.country || null,
-    businessType: f.businessType,
-    coverage: f.coverage,
-    verificationStatus: f.verificationStatus,
-    specialties: f.specialties.slice(0, 6),
-    isFeatured: f.isFeatured,
-    isDemo: false,
-    investmentMin: num(f.investmentMin),
-    investmentMax: num(f.investmentMax),
-    investmentCurrency: f.investmentCurrency || null,
-    productCount: l?.products.filter((p) => p.published).length ?? 0,
-    productPreview: l?.products.filter((p) => p.published).slice(0, 3).map((p) => p.name) ?? [],
-    hasWhatsapp: !!f.whatsappNumber.trim(),
-    createdAt: l?.createdAt ?? new Date().toISOString(),
-  };
 }
 
 /* ------------------------------------------------------------------ */
