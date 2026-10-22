@@ -25,7 +25,7 @@ import { adminLoginLimiter, ah, apiLimiter, parseOrThrow } from "../middleware/c
 import { login, logout, SESSION_COOKIE, sessionMaxAgeMs } from "../modules/admin/auth.js";
 import { audit } from "../modules/admin/audit.js";
 import { CSRF_HEADER, requireAdmin, requireRole, sessionToken } from "../modules/admin/middleware.js";
-import { actOnAd, createAd, deleteAd, getAd, listAds, updateAd } from "../modules/admin/ads.js";
+import { actOnAd, createAd, deleteAd, getAd, getAdDailyReport, listAds, updateAd } from "../modules/admin/ads.js";
 import { deleteEnquiry, deleteLead, deleteRequirement, getLead, listEnquiries, listLeads, listRequirementResponses, setRequirementStatus, updateEnquiry, updateLead } from "../modules/admin/inbox.js";
 import { actOnListing, createListing, createProduct, deleteListing, deleteProduct, getListing, listListings, updateListing, updateProduct } from "../modules/admin/listings.js";
 import { decideRequirement, getStats, listAudit, listRequirements } from "../modules/admin/service.js";
@@ -103,7 +103,8 @@ admin.post(
     const kind = String(req.params.kind);
     if (!MEDIA_KINDS.includes(kind as MediaKind)) throw new HttpError(400, "INVALID_MEDIA_KIND", "Unsupported image type.");
     if (!Buffer.isBuffer(req.body)) throw new HttpError(400, "INVALID_IMAGE", "Choose a JPG, PNG or WebP image.");
-    res.status(201).json({ data: await uploadImage(kind as MediaKind, req.body) });
+    const placement = kind === "ad" ? parseOrThrow(z.object({ placement: z.enum(AD_PLACEMENTS) }), req.query).placement : undefined;
+    res.status(201).json({ data: await uploadImage(kind as MediaKind, req.body, placement) });
   }),
 );
 admin.delete(
@@ -230,6 +231,17 @@ admin.get(
 );
 admin.post("/ads", canChange, ah(async (req, res) => void res.status(201).json({ data: await createAd(parseOrThrow(adminAdInputSchema, req.body), actor(req)) })));
 admin.get("/ads/:id", ah(async (req, res) => void res.json({ data: await getAd(uuidParam(req)) })));
+const reportDate = z.string().regex(/^\d{4}-\d{2}-\d{2}$/).refine((v) => {
+  const d = new Date(`${v}T00:00:00.000Z`);
+  return Number.isFinite(d.getTime()) && d.toISOString().slice(0, 10) === v;
+}, "Enter a real calendar date");
+admin.get("/ads/:id/report", ah(async (req, res) => {
+  const { from, to } = parseOrThrow(z.object({ from: reportDate, to: reportDate }).refine((v) => {
+    const span = Date.parse(`${v.to}T00:00:00.000Z`) - Date.parse(`${v.from}T00:00:00.000Z`);
+    return span >= 0 && span <= 89 * 86_400_000;
+  }, { path: ["to"], message: "Choose a date range of up to 90 days." }), req.query);
+  res.json({ data: await getAdDailyReport(uuidParam(req), from, to) });
+}));
 admin.put("/ads/:id", canChange, ah(async (req, res) => void res.json({ data: await updateAd(uuidParam(req), parseOrThrow(adminAdInputSchema, req.body), actor(req)) })));
 admin.post("/ads/:id/action", canChange, ah(async (req, res) => void res.json({ data: await actOnAd(uuidParam(req), parseOrThrow(adminAdActionSchema, req.body), actor(req)) })));
 admin.delete("/ads/:id", canDelete, ah(async (req, res) => void (await deleteAd(uuidParam(req), actor(req)), res.status(204).end())));

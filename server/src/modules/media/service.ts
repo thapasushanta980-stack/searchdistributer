@@ -1,5 +1,6 @@
 import { randomUUID } from "node:crypto";
 import { DeleteObjectCommand, PutObjectCommand, S3Client } from "@aws-sdk/client-s3";
+import { AD_PLACEMENT_CREATIVE_SPECS, type AdPlacement } from "@sd/shared";
 import sharp, { type Metadata } from "sharp";
 import { config } from "../../config.js";
 import { HttpError } from "../../lib/errors.js";
@@ -22,9 +23,10 @@ const publicBase = () => {
 };
 
 /** Validate, rotate, resize and normalize all uploads before they become public. */
-export async function uploadImage(kind: MediaKind, input: Buffer) {
+export async function uploadImage(kind: MediaKind, input: Buffer, placement?: AdPlacement) {
   const base = publicBase();
   if (!input.length || input.length > 12 * 1024 * 1024) throw new HttpError(413, "IMAGE_TOO_LARGE", "Choose an image smaller than 12 MB.");
+  if (kind === "ad" && !placement) throw new HttpError(400, "AD_PLACEMENT_REQUIRED", "Choose the ad placement before uploading its creative.");
   let meta: Metadata;
   try {
     meta = await sharp(input, { limitInputPixels: 40_000_000, animated: false }).metadata();
@@ -36,10 +38,13 @@ export async function uploadImage(kind: MediaKind, input: Buffer) {
   }
 
   let output: Buffer;
+  const crop = kind === "ad" && placement ? AD_PLACEMENT_CREATIVE_SPECS[placement] : undefined;
   try {
     output = await sharp(input, { limitInputPixels: 40_000_000, animated: false })
       .rotate()
-      .resize({ width: 2400, height: 2400, fit: "inside", withoutEnlargement: true })
+      .resize(crop
+        ? { width: crop.width, height: crop.height, fit: "cover", position: "centre" }
+        : { width: 2400, height: 2400, fit: "inside", withoutEnlargement: true })
       .webp({ quality: 84 })
       .toBuffer();
   } catch {
@@ -58,7 +63,8 @@ export async function uploadImage(kind: MediaKind, input: Buffer) {
   } catch {
     throw new HttpError(502, "MEDIA_UPLOAD_FAILED", "Image upload failed. Please try again.");
   }
-  return { url: new URL(key, base).toString(), width: meta.width, height: meta.height };
+  const outputMeta = await sharp(output).metadata();
+  return { url: new URL(key, base).toString(), width: outputMeta.width ?? meta.width, height: outputMeta.height ?? meta.height };
 }
 
 /** Only delete objects under this app's public media prefix. Legacy external URLs are left alone. */

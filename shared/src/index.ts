@@ -46,6 +46,13 @@ export const SORT_LABELS: Record<SortOption, string> = {
 export const ENQUIRY_STATUSES = ["PENDING_VERIFICATION", "NEW", "CONTACTED", "CLOSED"] as const;
 export const AD_PLACEMENTS = ["HOME_HERO_BANNER", "HOME_SPOTLIGHT", "HOME_FOOTER_BANNER", "SEARCH_TOP_BANNER"] as const;
 export type AdPlacement = (typeof AD_PLACEMENTS)[number];
+/** Canonical creative crops; these match the desktop ratio of each public slot. */
+export const AD_PLACEMENT_CREATIVE_SPECS: Record<AdPlacement, { width: number; height: number }> = {
+  HOME_HERO_BANNER: { width: 1200, height: 480 },
+  HOME_SPOTLIGHT: { width: 1000, height: 500 },
+  HOME_FOOTER_BANNER: { width: 1200, height: 315 },
+  SEARCH_TOP_BANNER: { width: 1200, height: 315 },
+};
 export const LEAD_TYPES = ["BUSINESS_REGISTRATION", "REQUIREMENT", "CONTACT", "FIND_DISTRIBUTORS", "BECOME_DISTRIBUTOR", "ADVERTISING"] as const;
 /** Lead types where the team must be able to call back, so a phone number is required. */
 export const PHONE_REQUIRED_LEAD_TYPES: readonly LeadType[] = ["BUSINESS_REGISTRATION", "FIND_DISTRIBUTORS", "BECOME_DISTRIBUTOR", "ADVERTISING"];
@@ -1048,6 +1055,12 @@ export interface AdminAdDTO extends Omit<AdminAdInput, "fromLeadId"> {
   isLive: boolean;
   createdAt: string;
   updatedAt: string;
+}
+
+export interface AdminAdDailyReportDTO {
+  from: string;
+  to: string;
+  days: Array<{ date: string; impressions: number; clicks: number }>;
 }
 
 export const adminAdActionSchema = z

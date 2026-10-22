@@ -1,11 +1,12 @@
 import { ArrowDown, ArrowUp, ImagePlus, LoaderCircle, X } from "lucide-react";
 import { useId, useRef, useState } from "react";
+import type { AdPlacement } from "@sd/shared";
 import { Button } from "@/components/ui/button";
 import { adminApi, type MediaKind } from "./api";
 
 const ACCEPT = "image/jpeg,image/png,image/webp";
 
-function useImageUpload(kind: MediaKind, onUpload: (url: string) => void) {
+function useImageUpload(kind: MediaKind, onUpload: (url: string) => void, placement?: AdPlacement) {
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const input = useRef<HTMLInputElement>(null);
@@ -14,7 +15,7 @@ function useImageUpload(kind: MediaKind, onUpload: (url: string) => void) {
     setBusy(true);
     setError(null);
     try {
-      onUpload((await adminApi.uploadImage(kind, file)).url);
+      onUpload((await adminApi.uploadImage(kind, file, placement)).url);
     } catch (e) {
       setError(e instanceof Error ? e.message : "Image upload failed.");
     } finally {
@@ -25,15 +26,15 @@ function useImageUpload(kind: MediaKind, onUpload: (url: string) => void) {
   return { busy, error, input, pick };
 }
 
-export function ImageUpload({ label, kind, value, onChange, alt = "Image preview", aspect = "aspect-video", error }: { label: string; kind: MediaKind; value: string; onChange: (url: string) => void; alt?: string; aspect?: string; error?: string }) {
-  const upload = useImageUpload(kind, onChange);
+export function ImageUpload({ label, kind, value, onChange, alt = "Image preview", aspect = "aspect-video", fit = "contain", hint, placement, error }: { label: string; kind: MediaKind; value: string; onChange: (url: string) => void; alt?: string; aspect?: string; fit?: "contain" | "cover"; hint?: string; placement?: AdPlacement; error?: string }) {
+  const upload = useImageUpload(kind, onChange, placement);
   const inputId = useId();
   return (
     <div className="space-y-2">
       <p className="text-sm font-medium text-ink">{label}</p>
       {value ? (
         <div className="relative max-w-xl overflow-hidden rounded-xl border border-line bg-slate-50">
-          <img src={value} alt={alt} className={`w-full object-contain ${aspect} max-h-64`} />
+          <img src={value} alt={alt} className={`w-full ${fit === "cover" ? "object-cover" : "object-contain"} ${aspect} max-h-64`} />
           <button type="button" aria-label={`Remove ${label.toLowerCase()}`} onClick={() => onChange("")} className="absolute right-2 top-2 rounded-full bg-white p-2 text-ink shadow hover:text-danger"><X className="h-4 w-4" /></button>
         </div>
       ) : (
@@ -50,6 +51,7 @@ export function ImageUpload({ label, kind, value, onChange, alt = "Image preview
       )}
       <input id={inputId} ref={upload.input} type="file" accept={ACCEPT} className="sr-only" disabled={upload.busy} onChange={(e) => void upload.pick(e.currentTarget.files?.[0])} />
       {upload.error && <p role="alert" className="text-sm text-danger">{upload.error}</p>}
+      {hint && <p className="text-xs text-muted">{hint}</p>}
       {error && <p role="alert" className="text-sm text-danger">{error}</p>}
     </div>
   );
