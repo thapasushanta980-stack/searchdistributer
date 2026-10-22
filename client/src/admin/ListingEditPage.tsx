@@ -23,6 +23,7 @@ import {
 } from "@sd/shared";
 import { DistributorCard } from "@/components/distributors/DistributorCard";
 import { CityPicker } from "@/components/forms/CityPicker";
+import { ImageGalleryUpload, ImageUpload } from "./ImageUpload";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 import { AdminApiError, adminApi } from "./api";
@@ -66,6 +67,8 @@ interface FormState {
   specialties: string[];
   website: string;
   logoUrl: string;
+  coverImageUrl: string;
+  galleryImageUrls: string[];
   contactPerson: string;
   whatsappNumber: string;
   notificationEmail: string;
@@ -96,6 +99,8 @@ const blank: FormState = {
   specialties: [],
   website: "",
   logoUrl: "",
+  coverImageUrl: "",
+  galleryImageUrls: [],
   contactPerson: "",
   whatsappNumber: "",
   notificationEmail: "",
@@ -126,6 +131,8 @@ const fromListing = (l: AdminListingDTO): FormState => ({
   specialties: l.specialties,
   website: l.website ?? "",
   logoUrl: l.logoUrl ?? "",
+  coverImageUrl: l.coverImageUrl ?? "",
+  galleryImageUrls: l.galleryImageUrls ?? [],
   contactPerson: l.contactPerson ?? "",
   whatsappNumber: l.whatsappNumber ?? "",
   notificationEmail: l.notificationEmail ?? "",
@@ -149,7 +156,7 @@ const fromLead = (lead: AdminLeadDTO, categories: CategoryDTO[]): FormState => {
   return {
     ...blank,
     name: lead.companyName ?? lead.name,
-    businessType: lead.registrationSide === "BRAND" ? "MANUFACTURER" : blank.businessType,
+    businessType: lead.registrationSide === "BRAND" || lead.type === "FIND_DISTRIBUTORS" ? "MANUFACTURER" : blank.businessType,
     contactPerson: lead.name,
     whatsappNumber: lead.phone ?? "",
     notificationEmail: lead.email ?? "",
@@ -176,6 +183,8 @@ const toInput = (f: FormState, fromLeadId?: string): AdminListingInput => ({
   specialties: f.specialties,
   website: f.website || null,
   logoUrl: f.logoUrl || null,
+  coverImageUrl: f.coverImageUrl || null,
+  galleryImageUrls: f.galleryImageUrls,
   contactPerson: f.contactPerson || null,
   whatsappNumber: f.whatsappNumber || null,
   notificationEmail: f.notificationEmail || null,
@@ -215,7 +224,9 @@ const FIELDS: Record<string, { tab: Tab; label: string }> = {
   summary: { tab: "essentials", label: "Summary" },
   description: { tab: "essentials", label: "Description" },
   whatsappNumber: { tab: "essentials", label: "WhatsApp number" },
-  logoUrl: { tab: "profile", label: "Logo image link" },
+  logoUrl: { tab: "profile", label: "Brand logo" },
+  coverImageUrl: { tab: "profile", label: "Cover image" },
+  galleryImageUrls: { tab: "profile", label: "Brand gallery" },
   website: { tab: "profile", label: "Website" },
   contactPerson: { tab: "profile", label: "Contact person" },
   notificationEmail: { tab: "profile", label: "Notification email" },
@@ -497,9 +508,9 @@ export function ListingEditPage() {
 
               {tab === "profile" && (
                 <div className="grid gap-4 sm:grid-cols-2">
-                  <F field="logoUrl" error={err("logoUrl")} hint="A https:// link to a square image.">
-                    {(fid) => <TextInput id={fid} type="url" value={form.logoUrl} onChange={(e) => set("logoUrl", e.target.value)} placeholder="https://" />}
-                  </F>
+                  <div className="sm:col-span-2"><ImageUpload label="Brand logo" kind="logo" value={form.logoUrl} onChange={(v) => set("logoUrl", v)} alt={`${form.name || "Business"} logo`} aspect="aspect-square" error={err("logoUrl")} /></div>
+                  <div className="sm:col-span-2"><ImageUpload label="Cover image" kind="cover" value={form.coverImageUrl} onChange={(v) => set("coverImageUrl", v)} alt={`${form.name || "Business"} cover`} /></div>
+                  <div className="sm:col-span-2"><ImageGalleryUpload label="Brand photos" kind="gallery" value={form.galleryImageUrls} onChange={(v) => set("galleryImageUrls", v)} max={12} /></div>
                   <F field="website" error={err("website")}>{(fid) => <TextInput id={fid} type="url" value={form.website} onChange={(e) => set("website", e.target.value)} placeholder="https://" />}</F>
                   <F field="contactPerson" error={err("contactPerson")}>{(fid) => <TextInput id={fid} value={form.contactPerson} onChange={(e) => set("contactPerson", e.target.value)} maxLength={120} />}</F>
                   <F field="notificationEmail" error={err("notificationEmail")} hint="Enquiries are emailed here. Never shown publicly.">
@@ -778,11 +789,12 @@ function StatusPanel({ listing: l }: { listing: AdminListingDTO }) {
 /* Products                                                            */
 /* ------------------------------------------------------------------ */
 
-const blankProduct = { name: "", description: "", categoryId: "", packaging: "", priceLabel: "", published: true };
+const blankProduct = { name: "", description: "", categoryId: "", packaging: "", priceLabel: "", imageUrls: [] as string[], published: true };
 type ProductForm = typeof blankProduct;
 const productToForm = (p: AdminProductDTO): ProductForm => ({
   name: p.name,
   description: p.description ?? "",
+  imageUrls: p.imageUrls ?? [],
   categoryId: p.categoryId ?? "",
   packaging: p.packaging ?? "",
   priceLabel: p.priceLabel ?? "",
@@ -791,6 +803,7 @@ const productToForm = (p: AdminProductDTO): ProductForm => ({
 const formToProduct = (f: ProductForm): AdminProductInput => ({
   name: f.name,
   description: f.description || null,
+  imageUrls: f.imageUrls,
   categoryId: f.categoryId || null,
   packaging: f.packaging || null,
   priceLabel: f.priceLabel || null,
@@ -839,6 +852,7 @@ function ProductRow({ listingId, product: p, categories }: { listingId: string; 
   return (
     <li>
       <Card className="flex flex-wrap items-center gap-3">
+        {p.imageUrls[0] && <img src={p.imageUrls[0]} alt="" className="h-12 w-16 rounded-md object-cover" />}
         <div className="min-w-0 flex-1">
           <div className="font-medium text-ink">{p.name}</div>
           <div className="text-xs text-muted">
@@ -891,6 +905,7 @@ function ProductEditor({ listingId, product, categories, onDone }: { listingId: 
         <Field label="Description" error={err("description")} className="sm:col-span-2">
           {(fid) => <TextArea id={fid} rows={3} value={f.description} onChange={(e) => set("description", e.target.value)} maxLength={2000} />}
         </Field>
+        <div className="sm:col-span-2"><ImageGalleryUpload label="Product photos" kind="product" value={f.imageUrls} onChange={(v) => set("imageUrls", v)} max={8} /></div>
         <div className="sm:col-span-2">
           <Toggle label="Published" hint="Hidden products stay saved but don't appear on the site." checked={f.published} onChange={(v) => set("published", v)} />
         </div>

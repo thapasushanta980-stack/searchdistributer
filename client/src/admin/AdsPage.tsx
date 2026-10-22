@@ -1,9 +1,10 @@
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { ArrowLeft, Check, MousePointerClick, Eye, Pause, Play, Plus, X } from "lucide-react";
 import { useEffect, useState, type FormEvent } from "react";
-import { Link, useNavigate, useParams } from "react-router-dom";
+import { Link, useNavigate, useParams, useSearchParams } from "react-router-dom";
 import { AD_PLACEMENTS, AD_PLACEMENT_LABELS, AD_STATUSES, AD_STATUS_LABELS, type AdminAdAction, type AdminAdDTO, type AdminAdInput } from "@sd/shared";
 import { Button } from "@/components/ui/button";
+import { ImageUpload } from "./ImageUpload";
 import { Badge } from "@/components/ui/misc";
 import { adminApi } from "./api";
 import {
@@ -172,7 +173,7 @@ const fromAd = (a: AdminAdDTO): AdForm => ({
   paymentVerified: a.paymentVerified,
   internalNotes: a.internalNotes ?? "",
 });
-const toInput = (f: AdForm): AdminAdInput => ({
+const toInput = (f: AdForm, fromLeadId?: string): AdminAdInput => ({
   placement: f.placement,
   advertiserName: f.advertiserName,
   headline: f.headline,
@@ -186,14 +187,18 @@ const toInput = (f: AdForm): AdminAdInput => ({
   weight: Number(f.weight) || 1,
   paymentVerified: f.paymentVerified,
   internalNotes: f.internalNotes || null,
+  ...(fromLeadId ? { fromLeadId } : {}),
 });
 
 export function AdEditPage() {
   const { id } = useParams();
   const isNew = !id || id === "new";
+  const [searchParams] = useSearchParams();
+  const leadId = isNew ? searchParams.get("fromLead") ?? undefined : undefined;
   const navigate = useNavigate();
   const qc = useQueryClient();
   const ad = useQuery({ queryKey: [...KEY, "one", id], queryFn: () => adminApi.ad(id!), enabled: !isNew });
+  const lead = useQuery({ queryKey: ["admin", "leads", "one", leadId], queryFn: () => adminApi.lead(leadId!), enabled: !!leadId });
   const [form, setForm] = useState<AdForm>(blank);
   const [loadedFor, setLoadedFor] = useState<string | null>(null);
   useEffect(() => {
@@ -201,7 +206,11 @@ export function AdEditPage() {
       setForm(fromAd(ad.data));
       setLoadedFor(ad.data.updatedAt);
     }
-  }, [ad.data, loadedFor]);
+    if (isNew && lead.data && loadedFor !== lead.data.id) {
+      setForm({ ...blank(), advertiserName: lead.data.companyName ?? lead.data.name, placement: lead.data.adPlacement ?? "HOME_HERO_BANNER", internalNotes: `Contact: ${lead.data.name}${lead.data.phone ? ` · ${lead.data.phone}` : ""}${lead.data.email ? ` · ${lead.data.email}` : ""}` });
+      setLoadedFor(lead.data.id);
+    }
+  }, [ad.data, isNew, lead.data, loadedFor]);
   const set = <K extends keyof AdForm>(k: K, v: AdForm[K]) => setForm((f) => ({ ...f, [k]: v }));
 
   const save = useAdminMutation((input: AdminAdInput) => (isNew ? adminApi.createAd(input) : adminApi.updateAd(id!, input)), [KEY], (saved) => {
@@ -211,7 +220,7 @@ export function AdEditPage() {
   const err = (f: string) => fieldError(save.error, f);
   const submit = (e: FormEvent) => {
     e.preventDefault();
-    save.mutate(toInput(form));
+    save.mutate(toInput(form, leadId));
   };
 
   if (!isNew && ad.isLoading) return <div className="skeleton h-96 w-full rounded-card" aria-busy="true" />;
@@ -222,7 +231,7 @@ export function AdEditPage() {
       <Link to="/ads" className="mb-3 inline-flex items-center gap-1 text-sm text-muted hover:text-ink">
         <ArrowLeft className="h-4 w-4" aria-hidden /> Advertising
       </Link>
-      <PageHeader title={isNew ? "New campaign" : (ad.data?.headline ?? "Campaign")} description={isNew ? "Saved as a draft. Approve it and mark it paid to run it." : undefined} />
+      <PageHeader title={isNew ? "New campaign" : (ad.data?.headline ?? "Campaign")} description={isNew ? (lead.data ? `Prefilled from advertising request ${lead.data.reference}.` : "Saved as a draft. Approve it and mark it paid to run it.") : undefined} />
       {ad.data && <AdStatusPanel ad={ad.data} />}
 
       <form onSubmit={submit} className="mt-5 space-y-5" noValidate>
@@ -253,21 +262,15 @@ export function AdEditPage() {
           <Field label="Destination link" hint="Where a click goes (https://)." error={err("destinationUrl")}>
             {(fid) => <TextInput id={fid} type="url" value={form.destinationUrl} onChange={(e) => set("destinationUrl", e.target.value)} placeholder="https://" />}
           </Field>
-          <Field label="Image link" hint="Optional https:// link to the banner image." error={err("imageUrl")}>
-            {(fid) => <TextInput id={fid} type="url" value={form.imageUrl} onChange={(e) => set("imageUrl", e.target.value)} placeholder="https://" />}
-          </Field>
+          <div className="sm:col-span-2"><ImageUpload label="Ad image" kind="ad" value={form.imageUrl} onChange={(v) => set("imageUrl", v)} alt={form.imageAlt || form.headline || "Advertisement"} error={err("imageUrl")} /></div>
           <Field label="Image description" hint="Read aloud by screen readers. Required with an image." error={err("imageAlt")}>
             {(fid) => <TextInput id={fid} value={form.imageAlt} onChange={(e) => set("imageAlt", e.target.value)} maxLength={200} />}
           </Field>
-          {form.imageUrl.startsWith("https://") && (
-            <div className="sm:col-span-2">
-              <p className="mb-1 text-xs text-muted">Preview</p>
-              <img src={form.imageUrl} alt={form.imageAlt} className="max-h-48 rounded-input border border-line object-contain" />
-            </div>
-          )}
         </Section>
 
-        <Section title="Schedule and billing">
+        <details className="rounded-card border border-line bg-surface p-4 shadow-card sm:p-5">
+          <summary className="cursor-pointer text-sm font-semibold text-ink">Advanced campaign settings</summary>
+          <div className="mt-4 grid gap-4 sm:grid-cols-2">
           <Field label="Starts" error={err("startsAt")}>
             {(fid) => <TextInput id={fid} type="date" value={form.startsAt} onChange={(e) => set("startsAt", e.target.value)} />}
           </Field>
@@ -291,7 +294,8 @@ export function AdEditPage() {
           <Field label="Internal notes" hint="Private. Invoice numbers, contacts, terms." error={err("internalNotes")} className="sm:col-span-2">
             {(fid) => <TextArea id={fid} rows={3} value={form.internalNotes} onChange={(e) => set("internalNotes", e.target.value)} maxLength={2000} />}
           </Field>
-        </Section>
+          </div>
+        </details>
 
         <div className="sticky bottom-0 z-10 -mx-4 flex flex-wrap items-center gap-3 border-t border-line bg-surface/95 px-4 py-3 backdrop-blur sm:mx-0 sm:rounded-card sm:border">
           <Button type="submit" disabled={save.isPending}>

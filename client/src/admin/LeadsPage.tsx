@@ -2,7 +2,7 @@ import { useQuery } from "@tanstack/react-query";
 import { Building2, Mail, Phone } from "lucide-react";
 import { useState } from "react";
 import { Link } from "react-router-dom";
-import { LEAD_STATUSES, LEAD_STATUS_LABELS, LEAD_TYPES, LEAD_TYPE_LABELS, type AdminLeadDTO, type LeadStatus } from "@sd/shared";
+import { AD_PLACEMENT_LABELS, LEAD_STATUSES, LEAD_STATUS_LABELS, LEAD_TYPES, LEAD_TYPE_LABELS, type AdminLeadDTO, type LeadStatus } from "@sd/shared";
 import { Button } from "@/components/ui/button";
 import { adminApi } from "./api";
 import { Card, DeleteButton, Details, ErrorLine, ListState, Meta, PageHeader, Pager, SearchBox, Select, StatusBadge, Tabs, TextArea, Toolbar, fmtDateTime, qs, useAdminMutation, useFilters, useIsSuperAdmin } from "./ui";
@@ -85,6 +85,7 @@ function LeadItem({ lead }: { lead: AdminLeadDTO }) {
               ),
             ],
             ["Registration side", lead.registrationSide === "BRAND" ? "Brand / Manufacturer" : lead.registrationSide === "DISTRIBUTOR" ? "Distributor / Wholesaler / Dealer" : null],
+            ["Ad placement", lead.adPlacement ? AD_PLACEMENT_LABELS[lead.adPlacement] : null],
             ["Location", lead.location],
             ["Category", lead.categorySlug],
           ]}
@@ -115,6 +116,7 @@ function LeadItem({ lead }: { lead: AdminLeadDTO }) {
               </Link>
             </Button>
           )}
+          {lead.type === "ADVERTISING" && lead.status !== "CONVERTED" && <Button size="sm" variant="secondary" asChild><Link to={`/ads/new?fromLead=${lead.id}`}><Building2 className="h-4 w-4" aria-hidden /> Create campaign</Link></Button>}
           {superAdmin && (
             <span className="ml-auto">
               <DeleteButton what="this lead" pending={remove.isPending} onConfirm={() => remove.mutate(undefined)} />

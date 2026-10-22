@@ -81,10 +81,21 @@ Set these under **Environment Variables** (runtime). Mark secrets as such.
 | `SMTP_HOST`, `SMTP_PORT`, `SMTP_USER`, `SMTP_PASS` | your mail provider | without SMTP, enquiry confirmation emails are only logged and **nobody receives them** |
 | `MAIL_FROM` | `Search Distributor <no-reply@searchdistributor.online>` | use a domain you've set SPF/DKIM for |
 | `SUPPORT_EMAIL` | your inbox | receives new leads and requirements to moderate |
+| `MEDIA_BUCKET` | S3-compatible bucket name | stores uploaded business, product and ad images |
+| `MEDIA_REGION` | `auto` or the bucket's region | set `auto` for providers that use it |
+| `MEDIA_ENDPOINT` | provider's S3 API endpoint | required by most S3-compatible providers; omit for AWS S3 |
+| `MEDIA_ACCESS_KEY_ID`, `MEDIA_SECRET_ACCESS_KEY` | storage credentials | grant access only to this media bucket |
+| `MEDIA_PUBLIC_URL` | public HTTPS base URL | CDN or public bucket URL used by the site to render images |
 | `SITE_NAME` | optional | |
 | `ENQUIRY_EMAIL_VERIFICATION` | `true` (default) | |
 
 Do not commit real values. `.env` files are excluded from the image.
+
+### Connect S3-compatible image storage
+
+Create a bucket with public image reads enabled through its public URL or CDN. Create a separate access key limited to that bucket with object read, write and delete permissions. Enter the six `MEDIA_*` values above in Coolify's runtime environment variables. `MEDIA_ENDPOINT` is the provider's S3 API endpoint; `MEDIA_PUBLIC_URL` is the browser-facing bucket/CDN base URL. They are different values for most providers. Set `MEDIA_REGION` to the provider's bucket region (`auto` for providers that support it). For AWS S3, set the real bucket region and leave `MEDIA_ENDPOINT` blank.
+
+The same variables are wired through `docker-compose.prod.yml` for local/VM deployments. Once configured, the admin can upload images directly; the app normalizes them to WebP and stores them in `media/<kind>/` in the bucket. If bucket or public URL is missing, upload routes stay disabled and the app logs a production warning.
 
 ## 5. Deploy, then create your first admin
 
@@ -112,6 +123,7 @@ Sign in at `https://searchdistributor.online/admin`. The session cookie is `Secu
 - **Rollback:** redeploy the previous commit. Migrations are not reversed automatically, so write new migrations to be backward compatible.
 - **Proxy:** the app trusts one proxy hop (`trust proxy = 1`), which matches Coolify's Traefik, and then swaps in `CF-Connecting-IP` when that hop is a Cloudflare edge (see [Cloudflare in front of Coolify](#cloudflare-in-front-of-coolify)). Rate limits and audit-log IPs rely on that. The Cloudflare ranges are in `server/src/middleware/clientIp.ts`.
 - **Config warnings:** on start the app prints `[config] WARNING:` lines for settings that boot but break things quietly (http or localhost `SITE_URL`, no SMTP, `@localhost` sender, no `SUPPORT_EMAIL`). A clean production deploy log has none.
+- **Media uploads:** image uploads remain disabled until the S3-compatible bucket and `MEDIA_PUBLIC_URL` are configured. Uploaded files are resized and converted to WebP before being stored.
 - **Resources:** a 1 vCPU / 2 GB VPS is enough to start. The image build needs about 2 GB of RAM; add swap if builds get killed.
 
 ## Rehearse locally (optional)

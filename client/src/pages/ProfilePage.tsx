@@ -220,6 +220,7 @@ export function ProfilePage() {
   return (
     <>
       <PageHead spec={spec} site={site} />
+      {d.coverImageUrl && <div className="container-page mt-4 sm:mt-6"><img src={d.coverImageUrl} alt={`${d.name} cover`} className="h-40 w-full rounded-card object-cover sm:h-64" /></div>}
       <div className="border-b border-line bg-white sm:border-0 sm:bg-transparent">
         <div className="container-page py-4 sm:py-5">
           <Breadcrumbs items={[{ name: "Home", to: "/" }, { name: "Find Distributors", to: "/distributors" }, ...(d.category ? [{ name: d.category.name, to: `/categories/${d.category.slug}` }] : []), { name: d.name }]} />
@@ -302,6 +303,7 @@ export function ProfilePage() {
 
           <Section id="about" title="About Company">
             <p className="whitespace-pre-line leading-relaxed text-slate-700">{d.description}</p>
+            {d.galleryImageUrls.length > 0 && <ul className="mt-5 grid grid-cols-2 gap-3 sm:grid-cols-3">{d.galleryImageUrls.map((src, i) => <li key={src}><img src={src} alt={`${d.name} business photo ${i + 1}`} loading="lazy" className="aspect-[4/3] w-full rounded-xl object-cover" /></li>)}</ul>}
             {d.specialties.length > 0 && (
               <ul className="mt-5 flex flex-wrap gap-2" aria-label="Specialties">
                 {d.specialties.map((s) => (

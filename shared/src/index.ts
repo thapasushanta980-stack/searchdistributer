@@ -44,9 +44,11 @@ export const SORT_LABELS: Record<SortOption, string> = {
 };
 
 export const ENQUIRY_STATUSES = ["PENDING_VERIFICATION", "NEW", "CONTACTED", "CLOSED"] as const;
-export const LEAD_TYPES = ["BUSINESS_REGISTRATION", "REQUIREMENT", "CONTACT", "FIND_DISTRIBUTORS", "BECOME_DISTRIBUTOR"] as const;
+export const AD_PLACEMENTS = ["HOME_HERO_BANNER", "HOME_SPOTLIGHT", "HOME_FOOTER_BANNER", "SEARCH_TOP_BANNER"] as const;
+export type AdPlacement = (typeof AD_PLACEMENTS)[number];
+export const LEAD_TYPES = ["BUSINESS_REGISTRATION", "REQUIREMENT", "CONTACT", "FIND_DISTRIBUTORS", "BECOME_DISTRIBUTOR", "ADVERTISING"] as const;
 /** Lead types where the team must be able to call back, so a phone number is required. */
-export const PHONE_REQUIRED_LEAD_TYPES: readonly LeadType[] = ["BUSINESS_REGISTRATION", "FIND_DISTRIBUTORS", "BECOME_DISTRIBUTOR"];
+export const PHONE_REQUIRED_LEAD_TYPES: readonly LeadType[] = ["BUSINESS_REGISTRATION", "FIND_DISTRIBUTORS", "BECOME_DISTRIBUTOR", "ADVERTISING"];
 export type LeadType = (typeof LEAD_TYPES)[number];
 
 export const DEFAULT_PAGE_SIZE = 12;
@@ -193,6 +195,7 @@ export const leadInputSchema = z
   .object({
     type: z.enum(LEAD_TYPES),
     registrationSide: z.enum(REGISTRATION_SIDES).optional(),
+    adPlacement: z.enum(AD_PLACEMENTS).optional(),
     name: z.string().trim().min(2, "Enter your name").max(100),
     companyName: z
       .string()
@@ -259,9 +262,18 @@ export const phoneRequiredLeadSchema = leadInputSchema.innerType().extend({
 
 /** Business registration: phone and city required; email and description optional. */
 export const registrationLeadSchema = leadInputSchema.innerType().extend({
+  companyName: z.string().trim().min(2, "Enter your business name").max(160),
   phone: requiredPhone,
   location: z.string().trim().min(1, "Choose your city").max(120),
   registrationSide: z.enum(REGISTRATION_SIDES),
+});
+
+/** Advertising requests are short: business contact, callback number, placement, and optional note. */
+export const advertisingLeadSchema = leadInputSchema.innerType().extend({
+  companyName: z.string().trim().min(2, "Enter your business name").max(160),
+  phone: requiredPhone,
+  adPlacement: z.enum(AD_PLACEMENTS),
+  message: z.string().trim().max(3000),
 });
 
 /* ------------------------------------------------------------------ */
@@ -311,12 +323,15 @@ export interface ProductDTO {
   publicSlug: string;
   name: string;
   description: string | null;
+  imageUrls: string[];
   category: { slug: string; name: string } | null;
   packaging: string | null;
   priceLabel: string | null;
 }
 
 export interface DistributorDetailDTO extends DistributorCardDTO {
+  coverImageUrl: string | null;
+  galleryImageUrls: string[];
   description: string;
   website: string | null;
   contactPerson: string | null;
@@ -384,6 +399,7 @@ export interface ProductListItemDTO {
   publicSlug: string;
   name: string;
   description: string | null;
+  imageUrls: string[];
   packaging: string | null;
   priceLabel: string | null;
   category: { slug: string; name: string } | null;
@@ -472,6 +488,7 @@ export interface ProductDetailDTO {
   publicSlug: string;
   name: string;
   description: string | null;
+  imageUrls: string[];
   packaging: string | null;
   priceLabel: string | null;
   category: { slug: string; name: string } | null;
@@ -645,9 +662,6 @@ export interface RequirementSubmitResponse {
 /* Advertising                                                         */
 /* ------------------------------------------------------------------ */
 
-export const AD_PLACEMENTS = ["HOME_HERO_BANNER", "HOME_SPOTLIGHT", "HOME_FOOTER_BANNER", "SEARCH_TOP_BANNER"] as const;
-export type AdPlacement = (typeof AD_PLACEMENTS)[number];
-
 export const AD_PLACEMENT_LABELS: Record<AdPlacement, string> = {
   HOME_HERO_BANNER: "Hero promotional banner",
   HOME_SPOTLIGHT: "Spotlight (paired cards)",
@@ -768,6 +782,8 @@ const optHttpsUrl = z
   .optional()
   .transform((v) => (v ? v : null));
 
+const httpsUrlList = z.array(httpsUrl).max(12).default([]);
+
 const isoDate = z.string().datetime({ offset: true, message: "Enter a valid date" });
 
 /** Leads: the contact and registration form inbox. */
@@ -783,6 +799,7 @@ export const LEAD_STATUS_LABELS: Record<LeadStatus, string> = {
 
 export const LEAD_TYPE_LABELS: Record<LeadType, string> = {
   BUSINESS_REGISTRATION: "Business registration",
+  ADVERTISING: "Advertising request",
   REQUIREMENT: "Requirement",
   CONTACT: "Contact message",
   FIND_DISTRIBUTORS: "Brand seeking distributors",
@@ -794,6 +811,7 @@ export interface AdminLeadDTO {
   reference: string;
   type: LeadType;
   registrationSide?: RegistrationSide | null;
+  adPlacement?: AdPlacement | null;
   status: LeadStatus;
   name: string;
   companyName: string | null;
@@ -904,6 +922,7 @@ export interface AdminProductDTO {
   name: string;
   publicSlug: string;
   description: string | null;
+  imageUrls: string[];
   categoryId: string | null;
   packaging: string | null;
   priceLabel: string | null;
@@ -926,6 +945,8 @@ export const adminListingInputSchema = z
     specialties: z.array(z.string().trim().min(1).max(80)).max(30).default([]),
     website: optHttpsUrl,
     logoUrl: optHttpsUrl,
+    coverImageUrl: optHttpsUrl,
+    galleryImageUrls: httpsUrlList,
     contactPerson: optText(120),
     whatsappNumber: z
       .union([z.string().trim().regex(phoneRegex, "Enter a valid WhatsApp number, e.g. +977 98XXXXXXXX"), z.literal(""), z.null()])
@@ -976,6 +997,7 @@ export type AdminListingAction = z.output<typeof adminListingActionSchema>;
 export const adminProductInputSchema = z.object({
   name: z.string().trim().min(2, "Enter the product name").max(120),
   description: optText(2000),
+  imageUrls: z.array(httpsUrl).max(8).default([]),
   categoryId: z.string().uuid().nullable().optional().transform((v) => v ?? null),
   packaging: optText(200),
   priceLabel: optText(80),
@@ -1011,12 +1033,13 @@ export const adminAdInputSchema = z
     weight: z.number().int().min(1).max(10).default(1),
     paymentVerified: z.boolean().default(false),
     internalNotes: optText(2000),
+    fromLeadId: z.string().uuid().optional(),
   })
   .refine((v) => new Date(v.endsAt) > new Date(v.startsAt), { path: ["endsAt"], message: "End must be after the start" })
   .refine((v) => !v.imageUrl || !!v.imageAlt, { path: ["imageAlt"], message: "Describe the image for screen readers" });
 export type AdminAdInput = z.output<typeof adminAdInputSchema>;
 
-export interface AdminAdDTO extends AdminAdInput {
+export interface AdminAdDTO extends Omit<AdminAdInput, "fromLeadId"> {
   id: string;
   status: AdStatus;
   impressions: number;

@@ -1,4 +1,4 @@
-import { Router, type Request } from "express";
+import express, { Router, type Request } from "express";
 import { z } from "zod";
 import {
   AD_PLACEMENTS,
@@ -30,6 +30,7 @@ import { deleteEnquiry, deleteLead, deleteRequirement, getLead, listEnquiries, l
 import { actOnListing, createListing, createProduct, deleteListing, deleteProduct, getListing, listListings, updateListing, updateProduct } from "../modules/admin/listings.js";
 import { decideRequirement, getStats, listAudit, listRequirements } from "../modules/admin/service.js";
 import { getAnalytics } from "../modules/analytics/service.js";
+import { deleteImage, MEDIA_KINDS, uploadImage, type MediaKind } from "../modules/media/service.js";
 
 export const admin = Router();
 
@@ -93,6 +94,26 @@ admin.get("/auth/me", (req, res) => {
   const { id, email, name, role } = req.admin!;
   res.json({ data: { id, email, name, role } });
 });
+
+admin.post(
+  "/media/:kind",
+  canChange,
+  express.raw({ type: ["image/jpeg", "image/png", "image/webp", "application/octet-stream"], limit: "12mb" }),
+  ah(async (req, res) => {
+    const kind = String(req.params.kind);
+    if (!MEDIA_KINDS.includes(kind as MediaKind)) throw new HttpError(400, "INVALID_MEDIA_KIND", "Unsupported image type.");
+    if (!Buffer.isBuffer(req.body)) throw new HttpError(400, "INVALID_IMAGE", "Choose a JPG, PNG or WebP image.");
+    res.status(201).json({ data: await uploadImage(kind as MediaKind, req.body) });
+  }),
+);
+admin.delete(
+  "/media",
+  canChange,
+  ah(async (req, res) => {
+    const { url } = parseOrThrow(z.object({ url: z.string().url().max(1000) }), req.body);
+    res.json({ data: await deleteImage(url) });
+  }),
+);
 
 admin.get(
   "/stats",

@@ -29,6 +29,13 @@ const schema = z.object({
   SUPPORT_PHONE: z.preprocess(blank, z.string().regex(/^[+()\d\s.-]{6,24}$/).optional()),
   /** The team's WhatsApp number (with country code). Enables the site-wide "Chat with us" button. */
   SUPPORT_WHATSAPP: z.preprocess(blank, z.string().regex(/^[+()\d\s.-]{6,24}$/).optional()),
+  /** S3-compatible media storage; uploads are disabled until bucket and public URL are configured. */
+  MEDIA_BUCKET: z.preprocess(blank, z.string().max(200).optional()),
+  MEDIA_REGION: z.preprocess(blank, z.string().max(100).default("auto")),
+  MEDIA_ENDPOINT: z.preprocess(blank, z.string().url().optional()),
+  MEDIA_ACCESS_KEY_ID: z.preprocess(blank, z.string().optional()),
+  MEDIA_SECRET_ACCESS_KEY: z.preprocess(blank, z.string().optional()),
+  MEDIA_PUBLIC_URL: z.preprocess(blank, z.string().url().optional()),
   SITE_NAME: z.string().default("Search Distributor"),
   SITE_TWITTER: z.preprocess(blank, z.string().optional()),
   SITE_EDITOR_NAME: z.preprocess(blank, z.string().optional()),
@@ -46,6 +53,9 @@ const schema = z.object({
         return false;
       }
     }, "Unknown timezone"),
+}).refine((v) => Boolean(v.MEDIA_ACCESS_KEY_ID) === Boolean(v.MEDIA_SECRET_ACCESS_KEY), {
+  path: ["MEDIA_SECRET_ACCESS_KEY"],
+  message: "Set both MEDIA_ACCESS_KEY_ID and MEDIA_SECRET_ACCESS_KEY, or neither.",
 });
 
 const parsed = schema.safeParse(process.env);
@@ -70,6 +80,7 @@ if (env.NODE_ENV === "production") {
     !env.SMTP_HOST && "SMTP_HOST is not set: enquiry confirmations and notifications are only logged, nobody receives them.",
     env.MAIL_FROM.includes("@localhost") && "MAIL_FROM uses @localhost: set an address on a domain with SPF/DKIM.",
     !env.SUPPORT_EMAIL && "SUPPORT_EMAIL is not set: new leads and requirements to moderate are not emailed to anyone.",
+    (!env.MEDIA_BUCKET || !env.MEDIA_PUBLIC_URL) && "Media storage is not configured: admin image uploads are disabled.",
   ].filter(Boolean);
   for (const w of warnings) console.warn(`[config] WARNING: ${w}`);
 }

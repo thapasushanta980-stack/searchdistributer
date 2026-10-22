@@ -75,6 +75,7 @@ enum LeadType {
   FIND_DISTRIBUTORS
   /// Quick form: someone who wants to become a distributor.
   BECOME_DISTRIBUTOR
+  ADVERTISING
 }
 
 enum RequirementKind {
@@ -178,6 +179,8 @@ model Distributor {
   name               String
   slug               String             @unique
   logoUrl            String?
+  coverImageUrl      String?
+  galleryImageUrls   String[]           @default([])
   summary            String
   description        String
   categoryId         String?
@@ -240,6 +243,7 @@ model Product {
   /// Globally unique public path segment: /products/:publicSlug
   publicSlug         String       @unique
   description        String?
+  imageUrls          String[]      @default([])
   categoryId         String?
   category           Category?    @relation(fields: [categoryId], references: [id], onDelete: Restrict)
   packaging          String?
@@ -292,6 +296,7 @@ model Lead {
   reference      String   @unique
   type           LeadType
   registrationSide String?
+  adPlacement      String?
   idempotencyKey String   @unique
   name           String
   companyName    String?
