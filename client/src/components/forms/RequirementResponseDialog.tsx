@@ -23,7 +23,7 @@ export function RequirementResponseDialog({ target, onClose }: { target: Respons
   if (target) last.current = target;
   const t = target ?? last.current;
   return (
-    <OverlayDialog open={!!target} onOpenChange={(o) => !o && onClose()} title="Send Enquiry" description={t ? `Respond to: ${t.title}` : undefined}>
+    <OverlayDialog open={!!target} onOpenChange={(o) => !o && onClose()} title="Respond to this requirement" description={t ? `Requirement: ${t.title}` : undefined}>
       {t && target && <ResponseForm key={target.slug} target={t} onClose={onClose} />}
     </OverlayDialog>
   );
@@ -63,7 +63,7 @@ function ResponseForm({ target, onClose }: { target: ResponseTarget; onClose: ()
           <CheckCircle2 className="h-8 w-8" aria-hidden />
         </span>
         <h3 className="mt-4 text-xl">Enquiry sent successfully</h3>
-        <p className="mx-auto mt-2 max-w-sm text-sm leading-relaxed text-muted">Your enquiry has been submitted to the business. They can contact you using the details you provided.</p>
+        <p className="mx-auto mt-2 max-w-sm text-sm leading-relaxed text-muted">Your response has been sent to the person who posted this requirement. They can contact you using the details you provided.</p>
         <div className="mx-auto mt-5 inline-block rounded-xl border border-line bg-slate-50 px-4 py-2.5 text-sm">
           <span className="text-muted">Reference </span>
           <strong className="font-mono tracking-wide text-ink">{reference}</strong>
@@ -122,7 +122,7 @@ function ResponseForm({ target, onClose }: { target: ResponseTarget; onClose: ()
           </Button>
           <Button type="submit" size="lg" className="flex-1" disabled={isSubmitting}>
             {isSubmitting ? <Loader2 className="h-4 w-4 animate-spin" aria-hidden /> : <Send className="h-4 w-4" aria-hidden />}
-            {isSubmitting ? "Sending…" : "Send Enquiry"}
+            {isSubmitting ? "Sending…" : "Send Response"}
           </Button>
         </div>
       </div>

@@ -251,7 +251,7 @@ export function LeadDetailPage() {
               </p>
             </div>
             <Button size="lg" className="hidden sm:inline-flex" onClick={respond}>
-              <Send className="h-4 w-4" aria-hidden /> Send Enquiry
+              <Send className="h-4 w-4" aria-hidden /> Respond to requirement
             </Button>
           </div>
         </div>
@@ -307,7 +307,7 @@ export function LeadDetailPage() {
             </h2>
             <p className="mt-2 text-sm leading-relaxed text-muted">The poster’s contact details are private. Send an enquiry and they can reply using the details you share.</p>
             <Button size="lg" className="mt-5 w-full" onClick={respond}>
-              Send Enquiry
+              Respond to requirement
             </Button>
             <p className="mt-3 text-xs text-muted">An enquiry is not a contract or a guarantee of a reply.</p>
           </div>
@@ -316,7 +316,7 @@ export function LeadDetailPage() {
 
       <div className="fixed inset-x-0 bottom-0 z-30 border-t border-line bg-white/95 p-3 pb-[max(0.75rem,env(safe-area-inset-bottom))] backdrop-blur sm:hidden">
         <Button size="lg" className="w-full" onClick={respond}>
-          <Send className="h-4 w-4" aria-hidden /> Send Enquiry
+          <Send className="h-4 w-4" aria-hidden /> Respond to requirement
         </Button>
       </div>
       <LazyResponseDialog target={target} onClose={() => setTarget(null)} />

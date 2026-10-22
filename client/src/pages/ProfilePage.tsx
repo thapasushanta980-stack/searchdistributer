@@ -36,11 +36,12 @@ const TILE_TONES = [
 
 function Section({ id, title, children, className }: { id: string; title: string; children: React.ReactNode; className?: string }) {
   return (
-    <section id={id} aria-labelledby={`${id}-h`} className={cn("scroll-mt-32 rounded-card border border-line bg-surface p-4 shadow-card sm:scroll-mt-36 sm:p-6", className)}>
-      <h2 id={`${id}-h`} className="border-l-4 border-primary pl-3 text-lg sm:text-xl">
+    <section id={id} aria-labelledby={`${id}-h`} className={cn("scroll-mt-32 rounded-2xl border border-slate-200 bg-white p-5 shadow-[0_12px_36px_-28px_rgba(15,23,42,0.4)] sm:scroll-mt-36 sm:rounded-3xl sm:p-7", className)}>
+      <h2 id={`${id}-h`} className="flex items-center gap-3 text-lg font-bold tracking-tight text-slate-950 sm:text-xl">
+        <span className="h-7 w-1 rounded-full bg-primary" aria-hidden />
         {title}
       </h2>
-      <div className="mt-4">{children}</div>
+      <div className="mt-5 border-t border-slate-100 pt-5">{children}</div>
     </section>
   );
 }
@@ -220,57 +221,64 @@ export function ProfilePage() {
   return (
     <>
       <PageHead spec={spec} site={site} />
-      {d.coverImageUrl && <div className="container-page mt-4 sm:mt-6"><img src={d.coverImageUrl} alt={`${d.name} cover`} className="h-40 w-full rounded-card object-cover sm:h-64" /></div>}
-      <div className="border-b border-line bg-white sm:border-0 sm:bg-transparent">
-        <div className="container-page py-4 sm:py-5">
-          <Breadcrumbs items={[{ name: "Home", to: "/" }, { name: "Find Distributors", to: "/distributors" }, ...(d.category ? [{ name: d.category.name, to: `/categories/${d.category.slug}` }] : []), { name: d.name }]} />
-          {/* Phones: compact profile card */}
-          <div className="mt-3 rounded-card border border-line bg-surface p-4 shadow-card sm:hidden">
-            <div className="flex items-center gap-3">
-              <CompanyLogo name={d.name} logoUrl={d.logoUrl} size={56} className="shrink-0 rounded-xl" />
-              <div className="min-w-0 flex-1">
-                <div className="flex flex-wrap items-center gap-1.5">
+      <div className="container-page pt-4 sm:pt-6">
+        <Breadcrumbs items={[{ name: "Home", to: "/" }, { name: "Find Distributors", to: "/distributors" }, ...(d.category ? [{ name: d.category.name, to: `/categories/${d.category.slug}` }] : []), { name: d.name }]} />
+        <section aria-labelledby="profile-title" className="mt-4 overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-[0_18px_55px_-32px_rgba(15,23,42,0.35)] sm:mt-6 sm:rounded-3xl">
+          <div className="relative h-36 overflow-hidden bg-gradient-to-br from-slate-900 via-indigo-950 to-blue-800 sm:h-52 lg:h-60">
+            {d.coverImageUrl && <img src={d.coverImageUrl} alt={`${d.name} cover`} className="absolute inset-0 h-full w-full object-cover" />}
+            <div className="absolute inset-0 bg-gradient-to-t from-slate-950/70 via-slate-950/15 to-slate-950/10" />
+            <div className="absolute inset-x-0 bottom-0 flex items-end justify-between p-4 sm:p-6">
+              <span className="inline-flex items-center gap-2 rounded-full border border-white/25 bg-slate-950/25 px-3 py-1.5 text-xs font-semibold tracking-wide text-white backdrop-blur-sm">
+                <Store className="h-3.5 w-3.5" aria-hidden /> Business profile
+              </span>
+              {d.isFeatured && <span className="rounded-full border border-amber-200/50 bg-amber-300/15 px-3 py-1.5 text-xs font-semibold text-amber-50 backdrop-blur-sm">Featured partner</span>}
+            </div>
+          </div>
+          <div className="px-4 pb-5 sm:px-7 sm:pb-7">
+            <div className="-mt-8 flex flex-col gap-4 sm:-mt-10 sm:flex-row sm:items-end sm:gap-5">
+              <div className="relative z-[1] w-fit rounded-2xl border-4 border-white bg-white shadow-lg">
+                <CompanyLogo name={d.name} logoUrl={d.logoUrl} size={76} className="rounded-xl sm:!h-24 sm:!w-24" />
+              </div>
+              <div className="min-w-0 flex-1 pb-0.5 sm:pb-1">
+                {d.category && <p className="text-xs font-bold uppercase tracking-[0.14em] text-primary">{d.category.name}</p>}
+                <h1 id="profile-title" className="mt-1 text-2xl font-bold leading-tight tracking-tight text-slate-950 sm:text-3xl lg:text-4xl">{d.name}</h1>
+                <div className="mt-2 flex flex-wrap items-center gap-2">
                   <VerificationBadge status={d.verificationStatus} />
                   {d.isFeatured && <Badge tone="accent">Featured</Badge>}
                   {d.isDemo && <Badge>Demo data</Badge>}
                 </div>
-                <h1 className="mt-1 text-xl leading-snug">{d.name}</h1>
+              </div>
+              <div className="grid shrink-0 grid-cols-2 gap-2 sm:w-56 sm:grid-cols-1">
+                <Button size="lg" className="w-full" onClick={enquire}><Send className="h-4 w-4" aria-hidden /> Send Enquiry</Button>
+                {d.hasWhatsapp ? <WhatsAppButton slug={d.slug} label="WhatsApp" className="w-full" /> : <Link to="#contact" className="inline-flex min-h-11 items-center justify-center rounded-button border border-slate-200 px-4 text-sm font-semibold text-slate-700 transition-colors hover:border-primary/40 hover:bg-primary-soft">Contact details</Link>}
               </div>
             </div>
-            <dl className="mt-3 space-y-1.5 border-t border-line pt-3 text-sm">
-              <div className="flex justify-between gap-4">
-                <dt className="text-muted">Business type</dt>
-                <dd className="text-right font-semibold text-ink">{BUSINESS_TYPE_LABELS[d.businessType]}</dd>
-              </div>
-              <div className="flex justify-between gap-4">
-                <dt className="text-muted">Coverage</dt>
-                <dd className="text-right font-semibold text-ink">{COVERAGE_LABELS[d.coverage]}</dd>
-              </div>
+            {d.summary && <p className="mt-5 max-w-4xl text-sm leading-6 text-slate-600 sm:ml-[116px] sm:mt-4 sm:text-base sm:leading-7">{d.summary}</p>}
+            <dl className="mt-5 grid grid-cols-2 gap-2 border-t border-slate-100 pt-4 sm:ml-[116px] sm:grid-cols-4 sm:gap-3 sm:pt-5">
+              {[
+                { icon: MapPin, label: "Based in", value: d.location },
+                { icon: Building2, label: "Business type", value: BUSINESS_TYPE_LABELS[d.businessType] },
+                { icon: Globe2, label: "Coverage", value: COVERAGE_LABELS[d.coverage] },
+                ...(d.category ? [{ icon: Package, label: "Category", value: d.category.name }] : []),
+              ].map((fact) => (
+                <div key={fact.label} className="flex min-w-0 items-start gap-2 rounded-xl bg-slate-50 px-3 py-2.5">
+                  <fact.icon className="mt-0.5 h-4 w-4 shrink-0 text-primary" aria-hidden />
+                  <div className="min-w-0"><dt className="text-[11px] font-medium uppercase tracking-wide text-slate-500">{fact.label}</dt><dd className="mt-0.5 truncate text-xs font-semibold text-slate-800 sm:text-sm">{fact.value}</dd></div>
+                </div>
+              ))}
             </dl>
-            <p className="mt-3 flex items-start gap-1.5 text-sm text-slate-600">
-              <MapPin className="mt-0.5 h-4 w-4 shrink-0 text-slate-400" aria-hidden /> {d.location}
-            </p>
-            <Button size="lg" className="mt-4 w-full" onClick={enquire}>
-              <Send className="h-4 w-4" aria-hidden /> Send Enquiry
-            </Button>
-            {d.hasWhatsapp && <WhatsAppButton slug={d.slug} className="mt-2 w-full" />}
           </div>
-        </div>
+        </section>
       </div>
 
-      {/* Phones: key facts as colour tiles + section tabs that follow you down the page */}
+      {/* Key facts and section navigation stay close to the profile introduction. */}
       <div className="sm:hidden">
         <div className="container-page pt-4">
           <dl className="grid grid-cols-2 gap-2.5">
             {facts.slice(2).map((f, i, arr) => (
               <div key={f.label} className={cn("flex min-w-0 items-center gap-2.5 rounded-xl p-3", TILE_TONES[i % TILE_TONES.length], arr.length % 2 === 1 && i === arr.length - 1 && "col-span-2")}>
-                <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-white shadow-sm">
-                  <f.icon className="h-[18px] w-[18px]" aria-hidden />
-                </span>
-                <div className="min-w-0">
-                  <dt className="text-xs font-medium text-slate-600">{f.label}</dt>
-                  <dd className="break-words text-sm font-bold leading-snug text-ink">{f.value}</dd>
-                </div>
+                <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-white shadow-sm"><f.icon className="h-[18px] w-[18px]" aria-hidden /></span>
+                <div className="min-w-0"><dt className="text-xs font-medium text-slate-600">{f.label}</dt><dd className="break-words text-sm font-bold leading-snug text-ink">{f.value}</dd></div>
               </div>
             ))}
           </dl>
@@ -280,13 +288,10 @@ export function ProfilePage() {
 
       <div className="container-page grid gap-4 py-4 pb-28 sm:gap-6 sm:py-10 lg:grid-cols-[minmax(0,1fr)_340px] lg:pb-12">
         <div className="min-w-0 space-y-4 sm:space-y-6">
-          {/* sm+: logo card beside colour fact tiles, then the section tabs */}
-          <div className="hidden gap-4 sm:grid sm:grid-cols-[120px_minmax(0,1fr)] lg:grid-cols-[148px_minmax(0,1fr)]">
-            <div className="flex items-center justify-center rounded-card border border-line bg-white p-3 shadow-card">
-              <CompanyLogo name={d.name} logoUrl={d.logoUrl} size={96} className="rounded-xl" />
-            </div>
+          {/* Desktop business facts use the same visual language as the profile header. */}
+          <div className={cn("hidden sm:block", facts.length <= 2 && "sm:hidden")}>
             <dl className="grid grid-cols-2 gap-3 xl:grid-cols-3">
-              {facts.map((f, i) => (
+              {facts.slice(2).map((f, i) => (
                 <div key={f.label} className={cn("flex min-w-0 items-center gap-3 rounded-xl p-3.5", TILE_TONES[i % TILE_TONES.length])}>
                   <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-white shadow-sm">
                     <f.icon className="h-5 w-5" aria-hidden />
@@ -385,7 +390,7 @@ export function ProfilePage() {
           <div className="hidden space-y-4 sm:block">
             <div className="rounded-card border border-line bg-surface p-5 shadow-card">
               {d.category && <p className="text-xs font-semibold uppercase tracking-wide text-primary">{d.category.name}</p>}
-              <h1 className="mt-1 text-xl leading-snug lg:text-2xl">{d.name}</h1>
+              <h2 className="mt-1 text-xl leading-snug lg:text-2xl">Contact {d.name}</h2>
               <div className="mt-2 flex flex-wrap items-center gap-1.5">
                 <VerificationBadge status={d.verificationStatus} />
                 {d.isFeatured && <Badge tone="accent">Featured · Sponsored</Badge>}
