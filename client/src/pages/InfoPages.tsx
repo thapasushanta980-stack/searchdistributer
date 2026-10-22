@@ -1,5 +1,5 @@
 import { Link } from "react-router-dom";
-import type { HeadSpec, LeadType } from "@sd/shared";
+import { AD_PLACEMENT_CREATIVE_SPECS, type AdPlacement, type HeadSpec, type LeadType } from "@sd/shared";
 import { Breadcrumbs } from "@/components/layout/Layout";
 import { LazyLeadForm } from "@/components/forms/lazy";
 import { Button } from "@/components/ui/button";
@@ -68,17 +68,17 @@ export function PricingPage() {
 }
 
 export function AdvertisingPage() {
-  const slots = [
-    { name: "Hero promotional banner", where: "Directly below the homepage hero and search", format: "Wide banner, 1200 × 300 (desktop)" },
-    { name: "Spotlight cards", where: "Between sections on the homepage", format: "Paired sponsored cards" },
-    { name: "Search results banner", where: "Above distributor search results", format: "Wide banner" },
-    { name: "Footer promotional banner", where: "Before the footer, dismissible", format: "Full-width call-to-action banner" },
+  const slots: Array<{ placement: AdPlacement; name: string; where: string; format: string }> = [
+    { placement: "HOME_HERO_BANNER", name: "Hero promotional banner", where: "Directly below the homepage hero and search", format: "Wide banner" },
+    { placement: "HOME_SPOTLIGHT", name: "Spotlight cards", where: "Between sections on the homepage", format: "Paired sponsored cards" },
+    { placement: "SEARCH_TOP_BANNER", name: "Search results banner", where: "Above distributor search results", format: "Wide banner" },
+    { placement: "HOME_FOOTER_BANNER", name: "Footer promotional banner", where: "Before the footer, dismissible", format: "Full-width call-to-action banner" },
   ];
   const rules = [
-    "Every ad is labelled “Sponsored” with the advertiser’s name, so it never looks like an organic result.",
+    "Every creative shows a Sponsored label and the advertiser's name, so it never looks like an organic result.",
     "An ad goes live only after the creative is approved, payment is verified and the schedule starts. It stops automatically at its end time.",
     "Placements are controlled by our team. We can pause or remove any campaign.",
-    "Impressions (at least half the ad visible for one second) and clicks are measured and reported as internal estimates.",
+    "A view counts when at least half an ad is visible for one continuous second. Repeated callbacks in the same page view count once; totals are aggregate estimates, not unique people.",
   ];
   return (
     <InfoLayout
@@ -89,12 +89,13 @@ export function AdvertisingPage() {
       intro="Reach distributors and business buyers with structured placements that are always labelled as sponsored."
     >
       <div className="grid gap-5 md:grid-cols-2">
-        {slots.map((s) => (
-          <Card key={s.name} title={s.name}>
+        {slots.map((s) => {
+          const size = AD_PLACEMENT_CREATIVE_SPECS[s.placement];
+          return <Card key={s.name} title={s.name}>
             <p>{s.where}.</p>
-            <p className="mt-1 text-xs text-muted">{s.format}</p>
-          </Card>
-        ))}
+            <p className="mt-1 text-xs text-muted">{s.format}{s.placement !== "HOME_SPOTLIGHT" && ` · Recommended creative ${size.width} × ${size.height}px`}</p>
+          </Card>;
+        })}
       </div>
       <section aria-labelledby="ad-rules" className="mt-10">
         <h2 id="ad-rules" className="text-2xl">
@@ -108,7 +109,7 @@ export function AdvertisingPage() {
             </li>
           ))}
         </ul>
-        <p className="mt-6 max-w-2xl text-sm text-muted">Prices, availability and creative specifications are agreed per booking and are not published here. Advertising is arranged with our team for now; self-service booking is planned.</p>
+        <p className="mt-6 max-w-2xl text-sm text-muted">Our team will confirm price, availability, creative specifications, booking dates and payment directly with you.</p>
       </section>
       <section aria-labelledby="ad-request" className="mt-10 max-w-2xl">
         <h2 id="ad-request" className="mb-4 text-2xl">Request advertising information</h2>

@@ -1,5 +1,5 @@
 import type { Prisma } from "@prisma/client";
-import { ADMIN_PAGE_SIZE, type AdminAdAction, type AdminAdDTO, type AdminAdInput, type AdminPage, type AdPlacement, type AdStatus } from "@sd/shared";
+import { ADMIN_PAGE_SIZE, type AdminAdAction, type AdminAdDTO, type AdminAdDailyReportDTO, type AdminAdInput, type AdminPage, type AdPlacement, type AdStatus } from "@sd/shared";
 import { prisma } from "../../db.js";
 import { HttpError } from "../../lib/errors.js";
 import { eligibleWhere } from "../ads/service.js";
@@ -72,6 +72,39 @@ export async function getAd(id: string): Promise<AdminAdDTO> {
   const a = await prisma.adCampaign.findUnique({ where: { id } });
   if (!a) throw new HttpError(404, "NOT_FOUND", "Campaign not found.");
   return toAd(a, await liveIds([id]));
+}
+
+/** Daily campaign activity since event reporting was introduced. */
+export async function getAdDailyReport(id: string, from: string, to: string): Promise<AdminAdDailyReportDTO> {
+  const exists = await prisma.adCampaign.findUnique({ where: { id }, select: { id: true } });
+  if (!exists) throw new HttpError(404, "NOT_FOUND", "Campaign not found.");
+  const start = new Date(`${from}T00:00:00.000Z`);
+  const endExclusive = new Date(`${to}T00:00:00.000Z`);
+  endExclusive.setUTCDate(endExclusive.getUTCDate() + 1);
+  const rows = await prisma.$queryRaw<Array<{ date: string; eventType: string; count: number }>>`
+    SELECT TO_CHAR(DATE_TRUNC('day', "createdAt"), 'YYYY-MM-DD') AS date,
+           "eventType"::text AS "eventType",
+           COUNT(*)::int AS count
+      FROM "ad_events"
+     WHERE "campaignId" = ${id}
+       AND "createdAt" >= ${start}
+       AND "createdAt" < ${endExclusive}
+     GROUP BY 1, 2
+     ORDER BY 1 ASC
+  `;
+  const totals = new Map<string, { impressions: number; clicks: number }>();
+  for (const row of rows) {
+    const day = totals.get(row.date) ?? { impressions: 0, clicks: 0 };
+    if (row.eventType === "IMPRESSION") day.impressions = row.count;
+    if (row.eventType === "CLICK") day.clicks = row.count;
+    totals.set(row.date, day);
+  }
+  const days: AdminAdDailyReportDTO["days"] = [];
+  for (const cursor = new Date(start); cursor <= new Date(`${to}T00:00:00.000Z`); cursor.setUTCDate(cursor.getUTCDate() + 1)) {
+    const date = cursor.toISOString().slice(0, 10);
+    days.push({ date, ...(totals.get(date) ?? { impressions: 0, clicks: 0 }) });
+  }
+  return { from, to, days };
 }
 
 /** New campaigns start as drafts; approving is a separate, audited step. */

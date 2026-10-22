@@ -108,6 +108,11 @@ enum AdStatus {
   COMPLETED
 }
 
+enum AdEventType {
+  IMPRESSION
+  CLICK
+}
+
 enum AdminRole {
   SUPER_ADMIN
   MODERATOR
@@ -420,9 +425,24 @@ model AdCampaign {
   internalNotes   String?
   createdAt       DateTime          @default(now())
   updatedAt       DateTime          @updatedAt
+  events          AdEvent[]
 
   @@index([placement, status, startsAt, endsAt])
   @@map("ad_campaigns")
+}
+
+/// PII-free event trail used for idempotent page-view impressions and daily admin reports.
+model AdEvent {
+  id         String       @id @default(uuid())
+  campaignId String
+  campaign   AdCampaign   @relation(fields: [campaignId], references: [id], onDelete: Cascade)
+  eventType  AdEventType
+  pageViewId String?
+  createdAt  DateTime     @default(now())
+
+  @@unique([campaignId, eventType, pageViewId])
+  @@index([campaignId, createdAt])
+  @@map("ad_events")
 }
 
 /// Back-office staff. Entirely separate from Organisations (brand accounts are not built yet).

@@ -1,6 +1,8 @@
 import type {
+  AdPlacement,
   AdminAdAction,
   AdminAdDTO,
+  AdminAdDailyReportDTO,
   AdminAdInput,
   AdminAuditDTO,
   AdminEnquiryDTO,
@@ -30,8 +32,9 @@ const BASE = "/api/admin/v1";
 
 export type MediaKind = "logo" | "cover" | "gallery" | "product" | "ad";
 
-async function uploadImage(kind: MediaKind, file: File): Promise<{ url: string; width: number; height: number }> {
-  const res = await fetch(`${BASE}/media/${kind}`, {
+async function uploadImage(kind: MediaKind, file: File, placement?: AdPlacement): Promise<{ url: string; width: number; height: number }> {
+  const query = placement ? `?placement=${encodeURIComponent(placement)}` : "";
+  const res = await fetch(`${BASE}/media/${kind}${query}`, {
     method: "POST",
     credentials: "same-origin",
     headers: { "X-SD-Admin": "1", "Content-Type": file.type },
@@ -118,6 +121,7 @@ export const adminApi = {
 
   ads: (query: string) => request<AdminPage<AdminAdDTO>>(`/ads${query}`),
   ad: (id: string) => request<{ data: AdminAdDTO }>(`/ads/${id}`).then((r) => r.data),
+  adReport: (id: string, from: string, to: string) => request<{ data: AdminAdDailyReportDTO }>(`/ads/${id}/report?${new URLSearchParams({ from, to })}`).then((r) => r.data),
   createAd: (body: AdminAdInput) => request<{ data: AdminAdDTO }>("/ads", { method: "POST", body }).then((r) => r.data),
   updateAd: (id: string, body: AdminAdInput) => request<{ data: AdminAdDTO }>(`/ads/${id}`, { method: "PUT", body }).then((r) => r.data),
   adAction: (id: string, body: AdminAdAction) => request<{ data: AdminAdDTO }>(`/ads/${id}/action`, { method: "POST", body }).then((r) => r.data),

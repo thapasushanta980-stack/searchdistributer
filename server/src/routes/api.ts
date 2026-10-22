@@ -94,7 +94,8 @@ api.post(
   ah(async (req, res) => {
     const id = String(req.params.id);
     if (!/^[0-9a-f-]{36}$/.test(id)) return void res.status(204).end();
-    await recordImpression(id);
+    const { pageViewId } = parseOrThrow(z.object({ pageViewId: z.string().uuid() }), req.body);
+    await recordImpression(id, pageViewId);
     res.status(204).end();
   }),
 );

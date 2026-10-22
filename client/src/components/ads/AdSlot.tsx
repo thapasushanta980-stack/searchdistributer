@@ -2,7 +2,7 @@ import { useQuery } from "@tanstack/react-query";
 import { AnimatePresence, m } from "framer-motion";
 import { ArrowRight, ArrowUpRight, ChevronLeft, ChevronRight, ClipboardList, Megaphone, UserPlus, X } from "lucide-react";
 import { useCallback, useEffect, useRef, useState } from "react";
-import { Link } from "react-router-dom";
+import { Link, useLocation } from "react-router-dom";
 import type { AdDTO, AdPlacement } from "@sd/shared";
 import { Button } from "@/components/ui/button";
 import { useApi } from "@/lib/context";
@@ -15,21 +15,39 @@ import { cn } from "@/lib/utils";
 /* ------------------------------------------------------------------ */
 
 const counted = new Set<string>();
+let currentPathname: string | undefined;
+let currentPageViewId = "";
 
-function useImpression(id: string | undefined, active: boolean) {
+function useAdPageViewId() {
+  const location = useLocation();
+  if (location.pathname !== currentPathname) {
+    currentPathname = location.pathname;
+    currentPageViewId = crypto.randomUUID();
+  }
+  return currentPageViewId;
+}
+
+function useImpression(id: string | undefined, active: boolean, pageViewId: string) {
   const ref = useRef<HTMLElement>(null);
   useEffect(() => {
     const el = ref.current;
-    if (!el || !id || !active || counted.has(id) || typeof IntersectionObserver === "undefined") return;
+    const eventKey = id ? `${pageViewId}:${id}` : "";
+    if (!el || !id || !active || counted.has(eventKey) || typeof IntersectionObserver === "undefined") return;
     let timer: ReturnType<typeof setTimeout> | undefined;
     const io = new IntersectionObserver(
       ([entry]) => {
         clearTimeout(timer);
         if (entry?.isIntersecting && entry.intersectionRatio >= 0.5) {
           timer = setTimeout(() => {
-            if (counted.has(id)) return;
-            counted.add(id);
-            fetch(`/api/v1/ads/${id}/impression`, { method: "POST", keepalive: true }).catch(() => counted.delete(id));
+            if (counted.has(eventKey)) return;
+            counted.add(eventKey);
+            if (counted.size > 2000) counted.delete(counted.values().next().value!);
+            fetch(`/api/v1/ads/${id}/impression`, {
+              method: "POST",
+              keepalive: true,
+              headers: { "Content-Type": "application/json" },
+              body: JSON.stringify({ pageViewId }),
+            }).catch(() => counted.delete(eventKey));
             io.disconnect();
           }, 1000);
         }
@@ -41,7 +59,7 @@ function useImpression(id: string | undefined, active: boolean) {
       clearTimeout(timer);
       io.disconnect();
     };
-  }, [id, active]);
+  }, [id, active, pageViewId]);
   return ref;
 }
 
@@ -79,13 +97,17 @@ function parallax(strength: number) {
 const Shine = ({ delay = "0s" }: { delay?: string }) => <span aria-hidden className="ad-shine pointer-events-none absolute inset-y-0 left-0 z-[2] w-1/4" style={{ animationDelay: delay }} />;
 
 /** Caption above every creative. The advertiser is named in the artwork and in the accessible label. */
-function AdCaption() {
+function AdCaption({ advertiser }: { advertiser: string }) {
   return (
     <p className="mb-1.5 flex min-w-0 items-center gap-1.5 pl-1 text-xs font-semibold uppercase tracking-wider text-muted">
       <Megaphone className="h-3 w-3" aria-hidden />
-      Advertisement
+      Sponsored · {advertiser}
     </p>
   );
+}
+
+function SponsorPill({ advertiser }: { advertiser: string }) {
+  return <span title={`Sponsored by ${advertiser}`} className="pointer-events-none absolute left-3 top-3 z-[3] max-w-[calc(100%-4.5rem)] truncate rounded-full bg-slate-950/80 px-3 py-1.5 text-[11px] font-semibold text-white shadow-md backdrop-blur">Sponsored · {advertiser}</span>;
 }
 
 /** Whole-creative link. Every click goes through the counted redirect. */
@@ -103,11 +125,11 @@ function ClickLayer({ ad }: { ad: AdDTO }) {
 /* Large banner carousel (hero / search / footer)                      */
 /* ------------------------------------------------------------------ */
 
-function BannerCreative({ ad, big }: { ad: AdDTO; big: boolean }) {
-  const ref = useImpression(ad.id, true);
+function BannerCreative({ ad, big, pageViewId }: { ad: AdDTO; big: boolean; pageViewId: string }) {
+  const ref = useImpression(ad.id, true, pageViewId);
   const ratio = big ? "aspect-[2/1] sm:aspect-[1600/640]" : "aspect-[2/1] sm:aspect-[1600/420]";
   return (
-    <article ref={ref as never} aria-label={`Sponsored: ${ad.headline}`} {...parallax(8)} className={cn("relative isolate flex w-full overflow-hidden rounded-[20px] border border-line bg-night text-white transition-shadow duration-500 hover:shadow-[0_30px_80px_-30px_rgba(49,86,211,0.6)]", ratio, "min-h-[170px] sm:min-h-0", !big && "sm:min-h-[150px]")}>
+    <article ref={ref as never} aria-label={`Sponsored by ${ad.advertiser}: ${ad.headline}`} {...parallax(8)} className={cn("relative isolate flex w-full overflow-hidden rounded-[20px] border border-line bg-night text-white transition-shadow duration-500 hover:shadow-[0_30px_80px_-30px_rgba(49,86,211,0.6)]", ratio, "min-h-[170px] sm:min-h-0", !big && "sm:min-h-[150px]")}>
       {ad.imageUrl ? (
         <>
           <img src={ad.imageUrl} alt={ad.imageAlt ?? ad.headline} width={1600} height={640} loading="eager" decoding="async" className="ad-kenburns absolute -inset-1.5 h-[calc(100%+0.75rem)] w-[calc(100%+0.75rem)] max-w-none object-cover transition-[translate] duration-300 ease-out [translate:calc(var(--px,0)*1px)_calc(var(--py,0)*1px)]" />
@@ -132,6 +154,7 @@ function BannerCreative({ ad, big }: { ad: AdDTO; big: boolean }) {
           </div>
         </>
       )}
+      <SponsorPill advertiser={ad.advertiser} />
     </article>
   );
 }
@@ -150,6 +173,7 @@ const roundBtn = "flex h-11 w-11 items-center justify-center sm:h-9 sm:w-9 round
 
 export function AdBanner({ placement, fallback, dismissible, big, className }: { placement: AdPlacement; fallback?: boolean; dismissible?: boolean; big?: boolean; className?: string }) {
   const api = useApi();
+  const pageViewId = useAdPageViewId();
   const { data: ads = [] } = useQuery(adsQuery(api, placement));
   usePreloadImages(ads);
   const [i, setI] = useState(0);
@@ -226,7 +250,7 @@ export function AdBanner({ placement, fallback, dismissible, big, className }: {
       onFocus={() => setPaused(true)}
       onBlur={() => setPaused(false)}
     >
-      <AdCaption />
+      <AdCaption advertiser={ad.advertiser} />
       <div className="relative overflow-hidden rounded-[20px]">
       <AnimatePresence initial={false} custom={dir} mode="popLayout">
         <m.div
@@ -242,7 +266,7 @@ export function AdBanner({ placement, fallback, dismissible, big, className }: {
           exit="exit"
           transition={{ type: "spring", stiffness: 260, damping: 30, mass: 0.85 }}
         >
-          <BannerCreative ad={ad} big={!!big} />
+          <BannerCreative ad={ad} big={!!big} pageViewId={pageViewId} />
         </m.div>
       </AnimatePresence>
 
@@ -318,16 +342,16 @@ function HouseCards({ className }: { className?: string }) {
 /* ------------------------------------------------------------------ */
 /* ------------------------------------------------------------------ */
 
-function SpotlightCard({ ad }: { ad: AdDTO }) {
-  const ref = useImpression(ad.id, true);
+function SpotlightCard({ ad, pageViewId }: { ad: AdDTO; pageViewId: string }) {
+  const ref = useImpression(ad.id, true, pageViewId);
   return (
     <li className="w-[74%] min-w-0 shrink-0 snap-start list-none sm:w-auto">
-      <AdCaption />
+      <AdCaption advertiser={ad.advertiser} />
       <m.article
         ref={ref as never}
         whileHover={{ y: -3 }}
         transition={{ type: "spring", stiffness: 420, damping: 30 }}
-        aria-label={`Sponsored: ${ad.headline}`}
+        aria-label={`Sponsored by ${ad.advertiser}: ${ad.headline}`}
         {...parallax(6)}
         className="group/ad relative isolate flex aspect-[2/1] w-full overflow-hidden rounded-[18px] sm:min-h-[170px] border border-line bg-white shadow-card transition-[box-shadow,border-color] duration-300 hover:border-primary/40 hover:shadow-[0_26px_60px_-26px_rgba(49,86,211,0.55)]"
       >
@@ -347,6 +371,7 @@ function SpotlightCard({ ad }: { ad: AdDTO }) {
             </span>
           </div>
         )}
+        <SponsorPill advertiser={ad.advertiser} />
         <ClickLayer ad={ad} />
       </m.article>
     </li>
@@ -355,6 +380,7 @@ function SpotlightCard({ ad }: { ad: AdDTO }) {
 
 export function AdSpotlight({ className, fallback }: { className?: string; fallback?: boolean }) {
   const api = useApi();
+  const pageViewId = useAdPageViewId();
   const { data: ads = [] } = useQuery(adsQuery(api, "HOME_SPOTLIGHT"));
   usePreloadImages(ads);
   if (!ads.length) return fallback ? <HouseCards className={className} /> : null;
@@ -362,7 +388,7 @@ export function AdSpotlight({ className, fallback }: { className?: string; fallb
     <aside aria-label="Advertisements" className={className}>
       <ul className={cn("scrollbar-none relative -mx-4 flex snap-x snap-mandatory gap-3 overflow-x-auto scroll-px-4 px-4 pb-1 sm:mx-0 sm:grid sm:snap-none sm:grid-cols-[minmax(0,1fr)] sm:gap-5 sm:overflow-visible sm:px-0 sm:pb-0", ads.length > 1 && "md:grid-cols-2")}>
         {ads.slice(0, 2).map((ad) => (
-          <SpotlightCard key={ad.id} ad={ad} />
+          <SpotlightCard key={ad.id} ad={ad} pageViewId={pageViewId} />
         ))}
       </ul>
     </aside>

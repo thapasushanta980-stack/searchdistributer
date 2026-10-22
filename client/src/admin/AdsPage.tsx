@@ -1,8 +1,8 @@
 import { useQuery, useQueryClient } from "@tanstack/react-query";
-import { ArrowLeft, Check, MousePointerClick, Eye, Pause, Play, Plus, X } from "lucide-react";
+import { ArrowLeft, Check, Download, MousePointerClick, Eye, Pause, Play, Plus, X } from "lucide-react";
 import { useEffect, useState, type FormEvent } from "react";
 import { Link, useNavigate, useParams, useSearchParams } from "react-router-dom";
-import { AD_PLACEMENTS, AD_PLACEMENT_LABELS, AD_STATUSES, AD_STATUS_LABELS, type AdminAdAction, type AdminAdDTO, type AdminAdInput } from "@sd/shared";
+import { AD_PLACEMENTS, AD_PLACEMENT_CREATIVE_SPECS, AD_PLACEMENT_LABELS, AD_STATUSES, AD_STATUS_LABELS, type AdPlacement, type AdminAdAction, type AdminAdDTO, type AdminAdInput } from "@sd/shared";
 import { Button } from "@/components/ui/button";
 import { ImageUpload } from "./ImageUpload";
 import { Badge } from "@/components/ui/misc";
@@ -37,6 +37,12 @@ import {
 
 const KEY = ["admin", "ads"];
 const ctr = (a: { impressions: number; clicks: number }) => (a.impressions ? `${((a.clicks / a.impressions) * 100).toFixed(1)}%` : "—");
+const AD_IMAGE_ASPECT: Record<AdPlacement, string> = {
+  HOME_HERO_BANNER: "aspect-[5/2]",
+  HOME_SPOTLIGHT: "aspect-[2/1]",
+  HOME_FOOTER_BANNER: "aspect-[1200/315]",
+  SEARCH_TOP_BANNER: "aspect-[1200/315]",
+};
 
 export function AdsPage() {
   const { values, page, set } = useFilters(["status", "placement", "q"] as const);
@@ -233,12 +239,17 @@ export function AdEditPage() {
       </Link>
       <PageHeader title={isNew ? "New campaign" : (ad.data?.headline ?? "Campaign")} description={isNew ? (lead.data ? `Prefilled from advertising request ${lead.data.reference}.` : "Saved as a draft. Approve it and mark it paid to run it.") : undefined} />
       {ad.data && <AdStatusPanel ad={ad.data} />}
+      {ad.data && <AdReportPanel ad={ad.data} />}
 
       <form onSubmit={submit} className="mt-5 space-y-5" noValidate>
         <Section title="Creative">
-          <Field label="Placement" error={err("placement")}>
+          <Field label="Placement" hint="Changing placement clears the image so it can be cropped for the new slot." error={err("placement")}>
             {(fid) => (
-              <Select id={fid} value={form.placement} onChange={(e) => set("placement", e.target.value as AdForm["placement"])}>
+              <Select id={fid} value={form.placement} onChange={(e) => {
+                const placement = e.target.value as AdForm["placement"];
+                set("placement", placement);
+                if (placement !== form.placement && form.imageUrl) set("imageUrl", "");
+              }}>
                 {AD_PLACEMENTS.map((p) => (
                   <option key={p} value={p}>
                     {AD_PLACEMENT_LABELS[p]}
@@ -262,7 +273,7 @@ export function AdEditPage() {
           <Field label="Destination link" hint="Where a click goes (https://)." error={err("destinationUrl")}>
             {(fid) => <TextInput id={fid} type="url" value={form.destinationUrl} onChange={(e) => set("destinationUrl", e.target.value)} placeholder="https://" />}
           </Field>
-          <div className="sm:col-span-2"><ImageUpload label="Ad image" kind="ad" value={form.imageUrl} onChange={(v) => set("imageUrl", v)} alt={form.imageAlt || form.headline || "Advertisement"} error={err("imageUrl")} /></div>
+          <div className="sm:col-span-2"><ImageUpload label="Ad image" kind="ad" placement={form.placement} aspect={AD_IMAGE_ASPECT[form.placement]} fit="cover" hint={`Recommended creative ${AD_PLACEMENT_CREATIVE_SPECS[form.placement].width} × ${AD_PLACEMENT_CREATIVE_SPECS[form.placement].height}px. It is cropped to this size on upload; mobile layouts use a centered crop, so keep important text near the center.`} value={form.imageUrl} onChange={(v) => set("imageUrl", v)} alt={form.imageAlt || form.headline || "Advertisement"} error={err("imageUrl")} /></div>
           <Field label="Image description" hint="Read aloud by screen readers. Required with an image." error={err("imageAlt")}>
             {(fid) => <TextInput id={fid} value={form.imageAlt} onChange={(e) => set("imageAlt", e.target.value)} maxLength={200} />}
           </Field>
@@ -306,6 +317,66 @@ export function AdEditPage() {
         </div>
       </form>
     </>
+  );
+}
+
+function AdReportPanel({ ad }: { ad: AdminAdDTO }) {
+  const initialTo = toDateInput(new Date().toISOString());
+  const initialFromDate = new Date();
+  initialFromDate.setUTCDate(initialFromDate.getUTCDate() - 29);
+  const [from, setFrom] = useState(() => toDateInput(initialFromDate.toISOString()));
+  const [to, setTo] = useState(() => initialTo);
+  const rangeDays = from && to ? Math.floor((Date.parse(`${to}T00:00:00Z`) - Date.parse(`${from}T00:00:00Z`)) / 86_400_000) + 1 : 0;
+  const validRange = rangeDays > 0 && rangeDays <= 90;
+  const report = useQuery({
+    queryKey: [...KEY, "report", ad.id, from, to],
+    queryFn: () => adminApi.adReport(ad.id, from, to),
+    enabled: validRange,
+  });
+  const days = report.data?.days ?? [];
+  const totals = days.reduce((sum, day) => ({ impressions: sum.impressions + day.impressions, clicks: sum.clicks + day.clicks }), { impressions: 0, clicks: 0 });
+  const download = () => {
+    const csv = [
+      ["Date", "Advertiser", "Campaign", "Placement", "Impressions", "Clicks", "Click rate"],
+      ...days.map((day) => [day.date, ad.advertiserName, ad.headline, AD_PLACEMENT_LABELS[ad.placement], day.impressions, day.clicks, day.impressions ? `${((day.clicks / day.impressions) * 100).toFixed(2)}%` : "0.00%"]),
+    ].map((row) => row.map((value) => {
+      const text = String(value);
+      const safe = /^[\s\uFEFF]*[=+\-@]/.test(text) ? `'${text}` : text;
+      return `"${safe.replaceAll('"', '""')}"`;
+    }).join(",")).join("\r\n");
+    const url = URL.createObjectURL(new Blob([`\uFEFF${csv}`], { type: "text/csv;charset=utf-8" }));
+    const link = document.createElement("a");
+    link.href = url;
+    link.download = `${ad.advertiserName.toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, "") || "campaign"}-ad-report-${from}-to-${to}.csv`;
+    link.click();
+    window.setTimeout(() => URL.revokeObjectURL(url), 1000);
+  };
+
+  return (
+    <Card className="mt-5">
+      <div className="flex flex-wrap items-end justify-between gap-3">
+        <div>
+          <h2 className="text-lg font-semibold text-ink">Daily campaign report</h2>
+          <p className="mt-1 text-xs text-muted">Daily tracking starts with this release. Older totals remain above and are not backfilled.</p>
+        </div>
+        <Button size="sm" variant="secondary" onClick={download} disabled={!report.data || report.isLoading}>
+          <Download className="h-4 w-4" aria-hidden /> Export CSV
+        </Button>
+      </div>
+      <div className="mt-4 flex flex-wrap items-end gap-3">
+        <Field label="From">{(id) => <TextInput id={id} type="date" value={from} max={to || undefined} onChange={(e) => setFrom(e.target.value)} />}</Field>
+        <Field label="To">{(id) => <TextInput id={id} type="date" value={to} min={from || undefined} onChange={(e) => setTo(e.target.value)} />}</Field>
+        {!validRange && <p className="pb-2 text-sm text-danger">Choose a valid range of up to 90 days.</p>}
+      </div>
+      <p className="mt-3 text-sm text-muted">{totals.impressions.toLocaleString()} impressions · {totals.clicks.toLocaleString()} clicks · {totals.impressions ? `${((totals.clicks / totals.impressions) * 100).toFixed(1)}%` : "—"} click rate</p>
+      {report.isError && <ErrorLine error={report.error} />}
+      <div className="mt-3 overflow-x-auto">
+        <table className="w-full min-w-[440px] text-left text-sm">
+          <thead><tr className="border-b border-line text-xs text-muted"><th className="py-2 pr-3 font-medium">Date</th><th className="py-2 pr-3 font-medium">Impressions</th><th className="py-2 pr-3 font-medium">Clicks</th><th className="py-2 font-medium">Click rate</th></tr></thead>
+          <tbody>{days.map((day) => <tr key={day.date} className="border-b border-line/70"><td className="py-2 pr-3">{fmtDate(`${day.date}T00:00:00.000Z`)}</td><td className="py-2 pr-3">{day.impressions.toLocaleString()}</td><td className="py-2 pr-3">{day.clicks.toLocaleString()}</td><td className="py-2">{day.impressions ? `${((day.clicks / day.impressions) * 100).toFixed(1)}%` : "—"}</td></tr>)}</tbody>
+        </table>
+      </div>
+    </Card>
   );
 }
 

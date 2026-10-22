@@ -1,3 +1,4 @@
+import { randomUUID } from "node:crypto";
 import type { AdPlacementCode, Prisma } from "@prisma/client";
 import type { AdDTO } from "@sd/shared";
 import { config } from "../../config.js";
@@ -67,17 +68,42 @@ export async function listActiveAds(placement: AdPlacementCode): Promise<AdDTO[]
   return out;
 }
 
-/** Counts an impression only for a currently eligible campaign. Returns false if unknown or no longer eligible. */
-export async function recordImpression(id: string): Promise<boolean> {
-  const res = await prisma.adCampaign.updateMany({ where: { AND: [{ id }, eligibleWhere(new Date())] }, data: { impressions: { increment: 1 } } });
-  return res.count === 1;
+/** Records one idempotent impression per campaign and browser page view. */
+export async function recordImpression(id: string, pageViewId: string = randomUUID()): Promise<boolean> {
+  return prisma.$transaction(async (tx) => {
+    const eligible = await tx.adCampaign.findFirst({ where: { AND: [{ id }, eligibleWhere(new Date())] }, select: { id: true } });
+    if (!eligible) return false;
+    const inserted = await tx.adEvent.createMany({
+      data: { campaignId: id, eventType: "IMPRESSION", pageViewId },
+      skipDuplicates: true,
+    });
+    if (!inserted.count) return false;
+
+    const updated = await tx.adCampaign.updateMany({ where: { AND: [{ id }, eligibleWhere(new Date())] }, data: { impressions: { increment: 1 } } });
+    if (!updated.count) {
+      await tx.adEvent.deleteMany({ where: { campaignId: id, eventType: "IMPRESSION", pageViewId } });
+      return false;
+    }
+    return true;
+  });
 }
 
 /** Counts the click and returns the validated destination, or null if the campaign is not live. */
 export async function recordClick(id: string, count = true): Promise<string | null> {
-  const row = await prisma.adCampaign.findFirst({ where: { AND: [{ id }, eligibleWhere(new Date())] }, select: { destinationUrl: true } });
-  const dest = row ? safeDestination(row.destinationUrl) : null;
-  if (!dest) return null;
-  if (count) await prisma.adCampaign.updateMany({ where: { id }, data: { clicks: { increment: 1 } } });
-  return dest;
+  if (!count) {
+    const row = await prisma.adCampaign.findFirst({ where: { AND: [{ id }, eligibleWhere(new Date())] }, select: { destinationUrl: true } });
+    return row ? safeDestination(row.destinationUrl) : null;
+  }
+  return prisma.$transaction(async (tx) => {
+    const row = await tx.adCampaign.findFirst({ where: { AND: [{ id }, eligibleWhere(new Date())] }, select: { destinationUrl: true } });
+    const dest = row ? safeDestination(row.destinationUrl) : null;
+    if (!dest) return null;
+    const event = await tx.adEvent.create({ data: { campaignId: id, eventType: "CLICK" } });
+    const updated = await tx.adCampaign.updateMany({ where: { AND: [{ id }, eligibleWhere(new Date())] }, data: { clicks: { increment: 1 } } });
+    if (!updated.count) {
+      await tx.adEvent.delete({ where: { id: event.id } });
+      return null;
+    }
+    return dest;
+  });
 }
