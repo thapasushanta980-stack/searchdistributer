@@ -98,8 +98,22 @@ export function AdsPage() {
           {list.data?.data.map((a) => (
             <li key={a.id}>
               <Link to={`/ads/${a.id}`} className="block transition-shadow hover:shadow-card-hover">
-                <Card className="flex gap-4">
-                  {a.imageUrl ? <img src={a.imageUrl} alt="" className="hidden h-16 w-28 shrink-0 rounded-input object-cover sm:block" loading="lazy" /> : null}
+                <Card className="flex flex-col gap-4 transition-colors hover:border-primary/25 sm:flex-row sm:items-center">
+                  <div
+                    className="relative w-full shrink-0 overflow-hidden rounded-xl border border-line bg-slate-100 sm:w-44"
+                    style={{ aspectRatio: `${AD_PLACEMENT_CREATIVE_SPECS[a.placement].width} / ${AD_PLACEMENT_CREATIVE_SPECS[a.placement].height}` }}
+                    aria-label={`${AD_PLACEMENT_LABELS[a.placement]} creative preview`}
+                  >
+                    {a.imageUrl ? (
+                      <img src={a.imageUrl} alt="" className="absolute inset-0 h-full w-full object-cover" loading="lazy" />
+                    ) : (
+                      <div className="absolute inset-0 flex flex-col justify-end bg-[radial-gradient(90%_130%_at_0%_0%,rgb(99_91_255/0.65),transparent_65%),linear-gradient(135deg,#101a3c,#243d91)] p-3 text-white">
+                        <span className="text-[9px] font-semibold uppercase tracking-[0.16em] text-white/70">{a.advertiserName}</span>
+                        <span className="mt-1 line-clamp-2 text-xs font-semibold leading-tight">{a.headline}</span>
+                      </div>
+                    )}
+                    <span className="absolute left-2 top-2 rounded-full bg-slate-950/80 px-2 py-1 text-[9px] font-semibold text-white shadow-sm">Preview</span>
+                  </div>
                   <div className="min-w-0 flex-1">
                     <Meta>
                       <span>{AD_PLACEMENT_LABELS[a.placement]}</span>

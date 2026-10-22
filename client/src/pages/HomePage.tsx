@@ -119,7 +119,7 @@ export function HomePage() {
           </p>
         </div>
 
-        <div className="container-page space-y-4 pb-4 sm:space-y-5 sm:pb-12">
+        <div className="container-page space-y-6 pb-5 sm:space-y-7 sm:pb-12">
           <AdBanner placement="HOME_HERO_BANNER" fallback big />
           <AdSpotlight fallback />
         </div>

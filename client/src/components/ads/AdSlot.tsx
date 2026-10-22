@@ -385,12 +385,19 @@ export function AdSpotlight({ className, fallback }: { className?: string; fallb
   usePreloadImages(ads);
   if (!ads.length) return fallback ? <HouseCards className={className} /> : null;
   return (
-    <aside aria-label="Advertisements" className={className}>
+    <section aria-label="Sponsored partner spotlight" className={cn("rounded-[24px] border border-line/80 bg-white/65 p-4 shadow-[0_12px_36px_-30px_rgba(15,23,42,0.45)] sm:p-5", className)}>
+      <header className="mb-4 flex items-center justify-between gap-4">
+        <div>
+          <p className="text-[11px] font-bold uppercase tracking-[0.18em] text-primary">Partner spotlight</p>
+          <p className="mt-1 text-xs text-muted sm:text-sm">Featured brands and distributors</p>
+        </div>
+        <span className="shrink-0 rounded-full border border-line bg-surface px-2.5 py-1 text-[10px] font-semibold uppercase tracking-wider text-muted">Sponsored</span>
+      </header>
       <ul className={cn("scrollbar-none relative -mx-4 flex snap-x snap-mandatory gap-3 overflow-x-auto scroll-px-4 px-4 pb-1 sm:mx-0 sm:grid sm:snap-none sm:grid-cols-[minmax(0,1fr)] sm:gap-5 sm:overflow-visible sm:px-0 sm:pb-0", ads.length > 1 && "md:grid-cols-2")}>
         {ads.slice(0, 2).map((ad) => (
           <SpotlightCard key={ad.id} ad={ad} pageViewId={pageViewId} />
         ))}
       </ul>
-    </aside>
+    </section>
   );
 }
